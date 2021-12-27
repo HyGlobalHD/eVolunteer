@@ -76,8 +76,14 @@ ORDER BY voteCount DESC LIMIT 0, 1
     public function getRecentSuggestionsLimitOrder($offset, $limit, $order)
     { // get suggestions based on the limit / order
         // note doesn't involved in user input, hence doesn't need to use prepared statemen
+        /**
+         * SELECT  suggestions.* FROM suggestions LEFT JOIN volunteer_program ON suggestions.SUGGESTIONS_ID <> volunteer_program.SUGGESTIONS_ID AND volunteer_program.SUGGESTIONS_ID IS NOT NULL ORDER BY suggestions.SUGGESTIONS_CREATED_DATE DESC LIMIT 0, 3
+         * select suggestions.*
+from suggestions
+where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID from volunteer_program WHERE volunteer_program.SUGGESTIONS_ID IS NOT NULL) ORDER BY suggestions.SUGGESTIONS_CREATED_DATE DESC LIMIT 0,2
+         */
         $order = strtoupper($order);
-        $sql = "SELECT suggestions.* FROM suggestions LEFT JOIN volunteer_program ON suggestions.SUGGESTIONS_ID <> volunteer_program.SUGGESTIONS_ID AND volunteer_program.SUGGESTIONS_ID IS NOT NULL ORDER BY SUGGESTIONS_CREATED_DATE " . $order . " LIMIT " . $offset . ", " . $limit;
+        $sql = "select suggestions.* FROM suggestions WHERE suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID FROM volunteer_program WHERE volunteer_program.SUGGESTIONS_ID IS NOT NULL) ORDER BY suggestions.SUGGESTIONS_CREATED_DATE " . $order . " LIMIT " . $offset . "," . $limit;
         $result = $this->connect()->query($sql);
         if($result) {
             $numRows = $result->num_rows;
@@ -103,6 +109,65 @@ ORDER BY voteCount DESC LIMIT 0, 1
                 }
                 return $data;
             }
+        }
+    }
+
+    // update suggestions
+    public function updateSuggestions($suggestions_id, $suggestions_title, $suggestions_details)
+    {
+        $sql = "UPDATE suggestions SET SUGGESTIONS_TITLE = ?, SUGGESTIONS_DETAILS = ? WHERE SUGGESTIONS_ID = ?";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->bind_param("sss", $suggestions_title, $suggestions_details, $suggestions_id);
+        $result = $stmt->execute();
+        return $result;
+        $stmt->close();
+    }
+
+    // delete suggestions
+    public function deleteSuggestions($suggestions_id)
+    {
+        $sql = "DELETE FROM suggestions WHERE SUGGESTIONS_ID = ?";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->bind_param("s", $suggestions_id);
+        $result = $stmt->execute();
+        return $result;
+        $stmt->close();
+    }
+
+    // create suggestions
+    public function createSuggestions($suggestions_title, $suggestions_details, $user_nric)
+    {
+        $sql = "INSERT INTO suggestions(SUGGESTIONS_ID, SUGGESTIONS_TITLE, SUGGESTIONS_DETAILS, SUGGESTIONS_CREATED_DATE, USER_NRIC) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $sid = uniqid('', true);
+        while($this->checkSGExists($sid)) {
+            $sid = uniqid('', true);
+        }
+        $stmt->bind_param("ssss", $sid, $suggestions_title, $suggestions_details, $user_nric);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+        if($result) {
+            return $sid;
+        } else {
+            return null;
+        }
+    }
+    
+    public function checkSGExists($suggestions_id) {
+        // note doesn't involved in user input, hence doesn't need to use prepared statemen
+        $sql = "SELECT * FROM suggestions_comment WHERE SC_ID = '$suggestions_id'";
+        $result = $this->connect()->query($sql);
+        if($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 
