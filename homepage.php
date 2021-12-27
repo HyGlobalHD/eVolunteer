@@ -115,6 +115,8 @@ if(is_null($detail)) {
               <li><a class="dropdown-item" href="top_suggestions.php">Top Suggestions</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="recent_suggestions.php">Recent Suggestions</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-success" href="create_suggestions.php">Create Suggestions</a></li>
             </ul>
           </li>
           <li class="nav-item">

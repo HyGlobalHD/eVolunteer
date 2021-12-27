@@ -57,6 +57,7 @@ if(!(is_null($detail))) {
         $cCreatedBy = $details['USER_NRIC'];
         $userUsername = $uAPI->getUserUsername($cCreatedBy);
     
+        $suggestionsdatav2 = array('suggestionsdetails' => $sDetails);
         $commentdata = $sDetails;
     }
 }
@@ -162,11 +163,7 @@ if(!(is_null($detail))) {
                 <?php echo $commentsectionMSG; ?>
             </span>
             <br>
-
-            <span> Original comment:
-                <?php echo $commentdata; ?>
-            </span>
-            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?sc_id=" . $sc_id; ?>" method="POST">
+            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?sc_id=" . $sc_id . "&sid=" . $suggestions_id; ?>" method="POST">
                 <div class="form-floating">
                     <input type="text" class="form-control" id="commentID" name="comment" placeholder="your comment" autocomplete="off" maxlength="280" onclick="checkLen(this.value)" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)">
                     <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
@@ -204,6 +201,10 @@ if(!(is_null($detail))) {
                 document.getElementById('commentBtn').disabled = true;
             }
         }
+        
+        let sdv2 = <?php echo json_encode($suggestionsdatav2); ?>;
+        document.getElementById('commentID').value = sdv2.suggestionsdetails;
+        alert(sdv2.suggestionsdetails);
     </script>
     <script src="js/offcanvas.js"></script>
 </body>

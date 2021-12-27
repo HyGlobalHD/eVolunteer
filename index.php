@@ -92,7 +92,7 @@ $msg = "";
             <p>Join us today and be a volunteer!</p>
             <a href="user_register.php" class="btn btn-primary">Sign-up Now</a>
             <p></p>
-            <p>Already have an account? <a href="user_login.php">Login Now!</a></p>
+            <p>Already have an account? <a href="user_login.php" class="primary-text" style="text-decoration: none;">Login Now!</a></p>
             
         <p class="mt-5 mb-3 text-muted" style="color: #7289DA;">e<span style="color: #2C2F33;">Volunteer &copy; 2021</span></p>
         </div>

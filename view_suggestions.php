@@ -18,12 +18,28 @@ $uAPI = new users();
 $suggestions_id = $_GET['id'];
 $currentUserId = $_SESSION['nric'];
 
-$content = $contentTitle = $contentCreator = $dateCreated = $contentVote = $commentdata = $checkEditable = "";
+$content = $contentTitle = $contentCreator = $dateCreated = $contentVote = $commentdata = $checkEditable = $votebtnmsg = $votebtn = "";
 //echo $suggestions_id;
 $commentsectionMSG = "";
 
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['votebtn'])) {
+    if ($sAPI->createUserVote($currentUserId, $suggestions_id)) {
+        $votebtnmsg = "<span class='text-success'>Successfully voted!</span><br>";
+    } else {
+        $votebtnmsg = "<span class='text-danger'>Opsie! Something wrong happen! Try again.</span>";
+    }
+}
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['unvotebtn'])) {
+    if ($sAPI->deleteUserVote($currentUserId, $suggestions_id)) {
+        $votebtnmsg = "<span class='text-success'>Successfully unvoted!</span><br>";
+    } else {
+        $votebtnmsg = "<span class='text-danger'>Opsie! Something wrong happen! Try again.</span><br>";
+    }
+}
+
 $detail = $sAPI->getSuggestionsDetails($suggestions_id);
-if(!(is_null($detail))) {
+if (!(is_null($detail))) {
     foreach ($detail as $details) {
         $sTitle = $details['SUGGESTIONS_TITLE'];
         $sDetails = $details['SUGGESTIONS_DETAILS'];
@@ -31,15 +47,15 @@ if(!(is_null($detail))) {
         $cCreatedBy = $details['USER_NRIC'];
         $userUsername = $uAPI->getUserUsername($cCreatedBy);
         $voteCount = $sAPI->getVote($suggestions_id);
-    
+
         $dateCreated = $sCreatedDate;
         $contentTitle = $sTitle;
         $contentCreator = $userUsername;
         $contentVote = $voteCount;
         $content = str_replace(["\r\n", "\r", "\n"], '\n', $sDetails);
-    
+
         if ($currentUserId == $cCreatedBy) {
-            $checkEditable = "<div class='d-flex justify-content-between'><strong class='text-primary'></strong><span> Edit Suggestions... </span></div>";
+            $checkEditable = "<div class='d-flex justify-content-between'><strong class='text-primary'></strong><span> <a href='edit_suggestions.php?id=$suggestions_id' class='primary-text' style='text-decoration: none;'>Edit Suggestions... </a></span></div>";
         }
     }
 } else {
@@ -51,7 +67,7 @@ $commentlimiter = 5; // limit user comment per post // great way to reduce spam
 if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['commentSent'])) {
     $commentgiven = $_POST['comment'];
     if (!(is_null($commentgiven)) && strlen(trim($commentgiven)) > 0) {
-        if($sAPI->getUserCommentCount($suggestions_id, $currentUserId) == $commentlimiter) {
+        if ($sAPI->getUserCommentCount($suggestions_id, $currentUserId) == $commentlimiter) {
             $commentsectionMSG = "<span class='text-danger'>You have reached the limit comment for this post</span>";
         } else {
             if ($sAPI->postSuggestionComment($suggestions_id, $currentUserId, $commentgiven)) {
@@ -93,7 +109,7 @@ $pagesOption = getPages($currPage, $totalPages);
 function getPages($currPage, $totalPages)
 { // return string
     $result = "";
-    if($totalPages < 1) {
+    if ($totalPages < 1) {
         $result = $result . "<option value='1' selected>1</option>";
     } else {
         for ($i = 1; $i <= $totalPages; $i++) {
@@ -127,9 +143,9 @@ function getComment($suggestions_id, $offsets, $limits)
             $cCreatedBy = $commentdetails['USER_NRIC'];
             $userUsername = $uAPI->getUserUsername($cCreatedBy);
 
-            if($cCreatedBy == $currentUserId) {
+            if ($cCreatedBy == $currentUserId) {
                 $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='suggestions_comment.php?sc_id=$sc_id&sid=$sId'>Change</a></span></div></div></div>";
-                "
+                /*
                 <form class='border-bottom my-3' action='<?php echo htmlspecialchars(".$_SERVER['PHP_SELF'].") . '?id=' . $suggestions_id; ?>' method='POST'>
                     <div class='form-floating'>
                         <input type='text' class='form-control' id='commentID' name='comment' placeholder='your comment' autocomplete='off' maxlength='280' onkeypress='checkLen(this.value)' onkeyup='checkLen(this.value)' required>
@@ -139,7 +155,7 @@ function getComment($suggestions_id, $offsets, $limits)
                             <input type='submit' name='commentSent' value='comment' class='btn btn-primary' id='commentBtn' disabled>
                         </div>
                     </div>
-                </form>";
+                </form>"; */
             } else {
                 $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><span class='d-block text-muted'>" . $cComment . "</span></div></div>";
             }
@@ -147,6 +163,13 @@ function getComment($suggestions_id, $offsets, $limits)
     }
     return $commentdata;
 }
+
+if ($sAPI->getUserVote($currentUserId, $suggestions_id)) {
+    $votebtn = "<input type='submit' class='btn btn-success' value='unvote' name='unvotebtn'>";
+} else {
+    $votebtn = "<input type='submit' class='btn btn-success' value='vote' name='votebtn'>";
+}
+
 ?>
 
 <!doctype html>
@@ -259,8 +282,9 @@ function getComment($suggestions_id, $offsets, $limits)
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <span class="text-primary">
-                    <form>
-                        <input type="submit" class="btn btn-success" value="vote" name="votebtn">
+                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
+                        <?php echo $votebtnmsg; ?>
+                        <?php echo $votebtn; ?>
                     </form>
                 </span>
                 <span> Vote: <?php echo $contentVote; ?></span>

@@ -15,6 +15,7 @@ $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
 
+$suggestions_id = $_GET['id'];
 $currentUserId = $_SESSION['nric'];
 
 // note: to check currentuser if same user as the create user
@@ -23,14 +24,14 @@ $suggestionsdata = "";
 //echo $suggestions_id;
 $suggestionssectionMSG = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions'])) {
+
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['updateSuggestions'])) {
     $suggestionsgiven = $_POST['suggestions'];
     $suggestionstitlegiven = $_POST['suggestionstitle'];
     if (!(is_null($suggestionsgiven)) && strlen(trim($suggestionsgiven)) > 0 && !(is_null($suggestionstitlegiven)) && strlen(trim($suggestionstitlegiven)) > 0) {
-      $tmpsid = $sAPI->createSuggestions($suggestionstitlegiven, $suggestionsgiven, $currentUserId);
-        if (!(is_null($tmpsid))) {
-            //$suggestionssectionMSG = "<span class='text-success'>Successful create suggestions!!</span>";
-            $suggestionssectionMSG = "<script type='text/javascript'>alert('Successful create suggestions!!');window.location.href = 'view_suggestions.php?id=$tmpsid';</script>";
+        if ($sAPI->updateSuggestions($suggestions_id, $suggestionstitlegiven, $suggestionsgiven)) {
+            $suggestionssectionMSG = "<span class='text-success'>Successful update suggestions!!</span>";
         } else {
             $suggestionssectionMSG = "<span class='text-danger'>Opsie! Something wrong happen! Try again.</span>";
         }
@@ -38,7 +39,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
         $suggestionssectionMSG = "<span class='text-info'>Please make sure your suggestions title is there</span>";
     }
 }
+if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['deleteSuggestions'])) {
+    $tmpsid = $_POST['tmpsid'];
+    if ($sAPI->deleteSuggestions($tmpsid)) {
+        $suggestionssectionMSG = "<script type='text/javascript'>alert('Delete Successful!');window.location.href = 'homepage.php';</script>";
+    } else {
+        $suggestionssectionMSG = "<span class='text-danger'>Opsie! Something wrong happen! Try again.</span>";
+    }
+}
 
+$detail = $sAPI->getSuggestionsDetails($suggestions_id);
+if(!(is_null($detail))) {
+    foreach ($detail as $details) {
+        $sID = $details['SUGGESTIONS_ID'];
+        $sDetails = $details['SUGGESTIONS_DETAILS'];
+        $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
+        $cCreatedBy = $details['USER_NRIC'];
+        $userUsername = $uAPI->getUserUsername($cCreatedBy);
+    
+        $suggestionsdatav2 = array('suggestionsdetails' => $sDetails);
+        $suggestionstitlev2 = array('suggestionstitle' => $details['SUGGESTIONS_TITLE']);
+        $suggestionsdata = $sDetails;
+    }
+}
 ?>
 
 <!doctype html>
@@ -142,7 +165,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
             </span>
             <br>
 
-            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
+            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
                 <div class="form-floating">
                     <input type="text" class="form-control" id="suggestionstitleID" name="suggestionstitle" placeholder="your suggestions title" autocomplete="off" maxlength="280" required>
                     <label for="suggestionstitleID">Your suggestions title...</label>
@@ -155,7 +178,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
                 <div class="d-flex justify-content-between">
                         <strong class="text-primary"></strong>
                         <span>
-                            <input type="submit" name="createSuggestions" value="create" class="btn btn-primary" id="suggestionsBtn" disabled>
+                            <input type="submit" name="updateSuggestions" value="update" class="btn btn-primary" id="suggestionsBtn" disabled>
+                            <input type="submit" name="deleteSuggestions" value="delete" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete the suggestions?')">
                         </span>
                     </div>
             </form>
@@ -183,6 +207,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
                 document.getElementById('suggestionsBtn').disabled = true;
             }
         }
+        let sdtv2 = <?php echo json_encode($suggestionstitlev2); ?>;
+        document.getElementById('suggestionstitleID').value = sdtv2.suggestionstitle;
+        let sdv2 = <?php echo json_encode($suggestionsdatav2); ?>;
+        document.getElementById('suggestionsID').value = sdv2.suggestionsdetails;
     </script>
     <script src="js/offcanvas.js"></script>
 </body>
