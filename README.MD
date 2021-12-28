@@ -16,3 +16,9 @@ TODO today:
                 $_SESSION["loggedin"] = true;
                 $_SESSION["nric"] = $nric;
                 $_SESSION["groupcode"] = $groupcode;
+
+
+note: for now I'll allow for one user to only participate one volunteer program
+note: remove group_matrix and web_program table due to ununse
+
+note: todo: make new ERD based on above
