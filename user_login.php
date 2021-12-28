@@ -1,5 +1,6 @@
 <?php
 include 'src/db.php';
+include 'src/suggestions.php';
 
 session_start(); // start the session
 
@@ -8,11 +9,18 @@ session_start(); // start the session
 $msg = "";
 $nric = $password = "";
 
+$msgt = "";
+if (isset($_GET['msgt']) && isset($_GET['msg'])) {
+    $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
+    // get the message type based on the numeric value
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nric = $_POST['nric'];
     $password = $_POST['password'];
 
     $db = new db();
+    $sAPI = new suggestions();
     $conn = $db->connect();
 
     $checkExist = "SELECT USER_NRIC FROM user WHERE USER_NRIC = ? LIMIT 1";
@@ -43,18 +51,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION["nric"] = $nric;
                 $_SESSION["groupcode"] = $groupcode;
 
-                header("location: homepage.php");
+                $sql = "UPDATE user SET USER_LOGIN_COUNT = USER_LOGIN_COUNT + 1 WHERE USER_NRIC = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("s", $nric);
+                $stmt->execute();
+
+                header("location: homepage.php?msgt=1&msg=Login Successful.");
                 exit;
-                $msg = "<p style='color: #7289DA;'> Login Success. </p>";
+                //$msg = "<p style='color: #7289DA;'> Login Success. </p>";
             } else {
-                $msg = "Wrong nric or password. Please check again.";
+                $msg = $sAPI->msgbox(3, "Wrong nric or password. Please check again.");
             }
         } else {
-            $msg = "Account is not active";
+            $msg = $sAPI->msgbox(2, "Account is not active for some reason, please contact the administrator for further information.");
         }
     } else {
         //$stmt->close();
-        $msg = "The user in non-existing. Please go to sign-up section, to register.";
+        $msg = $sAPI->msgbox(3, "Wrong nric or password. Please check again.");
+        // account not exists, but for security reason, we do not show there is no acount with this nric
     }
     $stmt->close();
     $conn->close();
@@ -133,10 +147,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </header>
 </div>
 
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+    </symbol>
+    <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
+    </symbol>
+    <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+    </symbol>
+</svg>
 
 <body>
 
     <main class="form-signup">
+        <?php echo $msgt; ?>
 
         <div class="text-center">
 
@@ -166,11 +192,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </main>
 
     <div class="container">
-  <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
-    <p class="col-md-4 mb-0 text-muted">&copy; 2021 eVolunteer</p>
-  </footer>
-</div>
+        <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
+            <p class="col-md-4 mb-0 text-muted">&copy; 2021 eVolunteer</p>
+        </footer>
+    </div>
 
+    <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="js/jquery-3.6.0.min.js"></script>
     <script src="js/ur.js"></script>
 </body>

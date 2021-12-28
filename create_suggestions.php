@@ -11,6 +11,12 @@ include 'src/users.php';
 
 session_start();
 
+if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+    // nric // groupcode
+  }else {
+    header("location: user_login.php?msgt=2&msg=Please login first.");
+    exit;
+  }
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
@@ -30,7 +36,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
       $tmpsid = $sAPI->createSuggestions($suggestionstitlegiven, $suggestionsgiven, $currentUserId);
         if (!(is_null($tmpsid))) {
             //$suggestionssectionMSG = "<span class='text-success'>Successful create suggestions!!</span>";
-            $suggestionssectionMSG = "<script type='text/javascript'>alert('Successful create suggestions!!');window.location.href = 'view_suggestions.php?id=$tmpsid';</script>";
+            //$suggestionssectionMSG = "<script type='text/javascript'>alert('Successful create suggestions!!');window.location.href = 'view_suggestions.php?id=$tmpsid';</script>";
+            header("location: view_suggestions.php?id=$tmpsid&msgt=1&msg=Successful create suggestions!!");
+            exit;
         } else {
             $suggestionssectionMSG = "<span class='text-danger'>Opsie! Something wrong happen! Try again.</span>";
         }
@@ -144,7 +152,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
 
             <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
                 <div class="form-floating">
-                    <input type="text" class="form-control" id="suggestionstitleID" name="suggestionstitle" placeholder="your suggestions title" autocomplete="off" maxlength="280" required>
+                    <input type="text" class="form-control" id="suggestionstitleID" name="suggestionstitle" placeholder="your suggestions title" autocomplete="off" maxlength="50" required>
                     <label for="suggestionstitleID">Your suggestions title...</label>
                 </div>
                 <div class="form-floating">

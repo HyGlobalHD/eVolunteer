@@ -5,8 +5,13 @@ include 'src/users.php';
 
 session_start();
 
-// TODO CHECK SESSION
 
+if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+  // nric // groupcode
+}else {
+  header("location: user_login.php?msgt=2&msg=Please login first.");
+  exit;
+}
 $recent = "";
 $dbAPI = new db();
 $sAPI = new suggestions();

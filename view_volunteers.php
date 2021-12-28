@@ -16,7 +16,7 @@ $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
 
-$suggestions_id = $_GET['id'];
+$vp_id = $_GET['id'];
 $currentUserId = $_SESSION['nric'];
 $groupcode = $_SESSION['groupcode'];
 
@@ -28,64 +28,60 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     exit;
 }
 
-if(!$sAPI->checkSuggestionsExist($suggestions_id)) {
-    header("location: homepage.php?msgt=0&msg=There is no suggestions post with the selected data.");
+if(!$sAPI->checkVPExist($vp_id)) {
+    header("location: homepage.php?msgt=0&msg=There is no volunteer program with the selected data.");
     exit;
 }
 
-$content = $contentTitle = $contentCreator = $dateCreated = $contentVote = $commentdata = $checkEditable = $votebtnmsg = $votebtn = $vpbtn = "";
-//echo $suggestions_id;
+$content = $contentTitle = $contentCreator = $dateCreated = $contentParticipate = $commentdata = $checkEditable = $Participatebtnmsg = $Participatebtn = $currParticipate = "";
+//echo $vp_id;
 $commentsectionMSG = "";
 
 $msgt = "";
 if (isset($_GET['msgt']) && isset($_GET['msg'])) {
-    $msgt = $msgt . $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
+    $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
     // get the message type based on the numeric value
 }
 
-if($sAPI->checkVP($suggestions_id)) {
-    $vp_id = $sAPI->checkVPID($suggestions_id);
-    $msgt = $msgt . $sAPI->msgbox(0, "This suggestions has been picked for volunteer program please go to <a href='view_volunteers.php?id=".$vp_id."'>this link for more info.</a>");
-}
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['votebtn'])) {
-    if ($sAPI->createUserVote($currentUserId, $suggestions_id)) {
-        $votebtnmsg = $sAPI->msgbox(1, "Successfully voted!");
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['Participatebtn'])) {
+    if ($sAPI->createUserParticipate($currentUserId, $vp_id)) {
+        $Participatebtnmsg = $sAPI->msgbox(1, "Successfully Participated!");
     } else {
-        $votebtnmsg = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+        $Participatebtnmsg = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
     }
 }
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['unvotebtn'])) {
-    if ($sAPI->deleteUserVote($currentUserId, $suggestions_id)) {
-        $votebtnmsg = $sAPI->msgbox(1, "Successfully unvoted!");
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['unParticipatebtn'])) {
+    if ($sAPI->deleteUserParticipate($currentUserId, $vp_id)) {
+        $Participatebtnmsg = $sAPI->msgbox(1, "Successfully unParticipated!");
     } else {
-        $votebtnmsg = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+        $Participatebtnmsg = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
     }
 }
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['vpbtn'])) {
-    // TODO redirect to create_volunteer.php?sid=$suggestions_id
-    header("location: create_volunteer.php?sid=$suggestions_id");
-    exit;
-}
 
-$detail = $sAPI->getSuggestionsDetails($suggestions_id);
+$detail = $sAPI->getVolunteerProgramDetails($vp_id);
 if (!(is_null($detail))) {
     foreach ($detail as $details) {
-        $sTitle = $details['SUGGESTIONS_TITLE'];
-        $sDetails = $details['SUGGESTIONS_DETAILS'];
-        $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-        $cCreatedBy = $details['USER_NRIC'];
-        $userUsername = $uAPI->getUserUsername($cCreatedBy);
-        $voteCount = $sAPI->getVote($suggestions_id);
+        //	VP_ID VP_TITLE VP_DETAILS VP_START_DATE VP_END_PROGRAM VP_MINIMUM_PARTICIPANT VP_PICKED_DATE USER_NRIC SUGGESTIONS_ID
+        $sTitle = $details['VP_TITLE'];
+        $sDetails = $details['VP_DETAILS'];
+        $vp_start_date = $details['VP_START_DATE'];
+        $vp_end_date = $details['VP_END_PROGRAM'];
+        $vp_minimum_participant = $details['VP_MINIMUM_PARTICIPANT'];
+        $sCreatedDate = $details['VP_PICKED_DATE'];
+        $pickedBy = $details['USER_NRIC'];
+        $sid = $details['SUGGESTIONS_ID'];
+        $userUsername = $uAPI->getUserUsername($pickedBy);
+        $ParticipateCount = $sAPI->getVote($sid);
 
         $dateCreated = $sCreatedDate;
         $contentTitle = $sTitle;
         $contentCreator = $userUsername;
-        $contentVote = $voteCount;
+        $contentParticipate = $ParticipateCount;
+        $currParticipate = $sAPI->getParticipateCount($vp_id);
         $content = str_replace(["\r\n", "\r", "\n"], '\n', $sDetails);
 
-        if ($currentUserId == $cCreatedBy || $groupcode == "ADM") {
-            $checkEditable = "<div class='d-flex justify-content-between'><strong class='text-primary'></strong><span> <a href='edit_suggestions.php?id=$suggestions_id' class='primary-text' style='text-decoration: none;'>Edit Suggestions... </a></span></div>";
+        if ($currentUserId == $pickedBy || $groupcode == "ADM") {
+            $checkEditable = "<div class='d-flex justify-content-between'><strong class='text-primary'></strong><span> <a href='edit_volunteer.php?id=$vp_id' class='primary-text' style='text-decoration: none;'>Edit Volunteer Program... </a></span></div>";
         }
     }
 } else {
@@ -97,10 +93,10 @@ $commentlimiter = 5; // limit user comment per post // great way to reduce spam
 if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['commentSent'])) {
     $commentgiven = $_POST['comment'];
     if (!(is_null($commentgiven)) && strlen(trim($commentgiven)) > 0) {
-        if ($sAPI->getUserCommentCount($suggestions_id, $currentUserId) == $commentlimiter) {
+        if ($sAPI->getUserVPCommentCount($vp_id, $currentUserId) == $commentlimiter) {
             $commentsectionMSG = $sAPI->msgbox(0, "You have reached the limit comment for this post");
         } else {
-            if ($sAPI->postSuggestionComment($suggestions_id, $currentUserId, $commentgiven)) {
+            if ($sAPI->postVolunteerComment($vp_id, $currentUserId, $commentgiven)) {
                 $commentsectionMSG = $sAPI->msgbox(1, "Successfully comment");
             } else {
                 $commentsectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
@@ -125,12 +121,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['commentPage'])) {
     for ($i = 1; $i < intval($currPage); $i++) { // i = 0; i < 1; i++ = $offset = 0 + 10;
         $offset = $offset + $offsetSettings;
     }
-    $commentdata = getComment($suggestions_id, $offset, $limit);
+    $commentdata = getComment($vp_id, $offset, $limit);
     // display results
 } else {
     // default
     $currPage = 1;
-    $commentdata = getComment($suggestions_id, $offset, $limit);
+    $commentdata = getComment($vp_id, $offset, $limit);
 }
 
 $pagesOption = getPages($currPage, $totalPages);
@@ -153,7 +149,7 @@ function getPages($currPage, $totalPages)
     return $result;
 }
 
-function getComment($suggestions_id, $offsets, $limits)
+function getComment($vp_id, $offsets, $limits)
 {
     $commentdata = "";
     $dbAPI = new db();
@@ -161,22 +157,22 @@ function getComment($suggestions_id, $offsets, $limits)
     $uAPI = new users();
     $currentUserId = $_SESSION['nric'];
 
-    $commentdetail = $sAPI->getSuggestionsCommentLimitOrder($suggestions_id, $offsets, $limits, 'DESC');
+    $commentdetail = $sAPI->getVolunteerCommentLimitOrder($vp_id, $offsets, $limits, 'DESC');
     if (is_null($commentdetail)) {
         $commentdata = "There is no available comment...";
     } else {
         foreach ($commentdetail as $commentdetails) {
-            $sc_id = $commentdetails['SC_ID'];
-            $sId = $commentdetails['SUGGESTIONS_ID'];
+            $sc_id = $commentdetails['VC_ID'];
+            $sId = $commentdetails['VP_ID'];
             $cComment = $commentdetails['COMMENT'];
             $cDateTime = $commentdetails['COMMENT_DATE_TIME'];
-            $cCreatedBy = $commentdetails['USER_NRIC'];
-            $userUsername = $uAPI->getUserUsername($cCreatedBy);
+            $pickedBy = $commentdetails['USER_NRIC'];
+            $userUsername = $uAPI->getUserUsername($pickedBy);
 
-            if ($cCreatedBy == $currentUserId) {
-                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='suggestions_comment.php?sc_id=$sc_id&sid=$sId'>Change</a></span></div></div></div>";
+            if ($pickedBy == $currentUserId) {
+                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='vp_comment.php?sc_id=$sc_id&sid=$sId'>Change</a></span></div></div></div>";
                 /*
-                <form class='border-bottom my-3' action='<?php echo htmlspecialchars(".$_SERVER['PHP_SELF'].") . '?id=' . $suggestions_id; ?>' method='POST'>
+                <form class='border-bottom my-3' action='<?php echo htmlspecialchars(".$_SERVER['PHP_SELF'].") . '?id=' . $vp_id; ?>' method='POST'>
                     <div class='form-floating'>
                         <input type='text' class='form-control' id='commentID' name='comment' placeholder='your comment' autocomplete='off' maxlength='280' onkeypress='checkLen(this.value)' onkeyup='checkLen(this.value)' required>
                         <label for='commentID'>Your comment...<span id='counterDisplay'></span></label>
@@ -194,14 +190,10 @@ function getComment($suggestions_id, $offsets, $limits)
     return $commentdata;
 }
 
-if ($sAPI->getUserVote($currentUserId, $suggestions_id)) {
-    $votebtn = "<input type='submit' class='btn btn-success' value='unvote' name='unvotebtn'>";
+if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
+    $Participatebtn = "<input type='submit' class='btn btn-success' value='unParticipate' name='unParticipatebtn'>";
 } else {
-    $votebtn = "<input type='submit' class='btn btn-success' value='vote' name='votebtn'>";
-}
-
-if(($groupcode == "ORG" || $groupcode == "USER") && $sAPI->checkVP($suggestions_id) === false){
-    $vpbtn = "<input type='submit' class='btn btn-success' value='choose as volunteer program' name='vpbtn'>";
+    $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn'>";
 }
 
 ?>
@@ -319,32 +311,42 @@ if(($groupcode == "ORG" || $groupcode == "USER") && $sAPI->checkVP($suggestions_
                 let content = '<?php echo $content; ?>'.replace(/\\n/g, '\n');
                 document.getElementById('contentmarkdown').innerHTML = marked.parse(content.replace(/\\n/g, '\n'));
             </script>
-
-            <div class="d-flex justify-content-between text-muted">
-                <strong class="text-primary"></strong>
-                <span>Suggest by: @<?php echo $contentCreator; ?></span>
+            <div class="border-bottom">
+            <div class="text-muted">
+                <span>Estimated Start Date: <?php echo $vp_start_date; ?></span> <br>
+                <span>Estimated End Date: <?php echo $vp_end_date; ?></span> <br>
+                <span>Minimum Participant: <?php echo $vp_minimum_participant; ?></span> <br>
+                <span>Original Suggestions Post: <a href="view_suggestions.php?id=<?php echo $sid; ?>" class="text-primary" style="text-decoration: none;">Click Here</a></span> <br>
+            </div>
             </div>
             <div class="d-flex justify-content-between text-muted">
-                <span class="text-muted">Like the suggestions?? Give a vote!!</span>
-                <span>Suggestion create on: <?php echo $dateCreated; ?></span>
+                <strong class="text-primary"></strong>
+                <span>Picked by: @<?php echo $contentCreator; ?></span>
+            </div>
+            <div class="d-flex justify-content-between text-muted">
+                <span class="text-muted">Like the volunteer program?? Participate Now!!</span>
+                <span>Volunteer Program pivked on: <?php echo $dateCreated; ?></span>
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <span class="text-primary">
-                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
-                        <?php echo $votebtnmsg; ?>
-                        <?php echo $votebtn; ?>
-                        <?php echo $vpbtn; ?>
+                    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $vp_id; ?>" method="POST">
+                        <?php echo $Participatebtnmsg; ?>
+                        <?php echo $Participatebtn; ?>
                     </form>
                 </span>
-                <span> Vote: <?php echo $contentVote; ?></span>
+                <span class="text-muted"> Original Vote: <?php echo $contentParticipate; ?></span>
             </div>
+            <div class="d-flex justify-content-between text-muted">
+                <span></span>
+                <span> Current Participate Count: <?php echo $currParticipate; ?></span>
+    </div>
             <?php echo $checkEditable; ?>
         </div>
 
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <h6 class="border-bottom pb-2 mb-0">Comment</h6>
             <?php echo $commentsectionMSG; ?>
-            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
+            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $vp_id; ?>" method="POST">
                 <div class="form-floating">
                     <input type="text" class="form-control" id="commentID" name="comment" placeholder="your comment" autocomplete="off" maxlength="280" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)" required>
                     <label for="commentID">Your comment...<span id="counterDisplay"></span></label>
@@ -357,7 +359,7 @@ if(($groupcode == "ORG" || $groupcode == "USER") && $sAPI->checkVP($suggestions_
             <div class="border-bottom my-3"></div>
             <?php echo $commentdata;
             ?>
-            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
+            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $vp_id; ?>" method="POST">
                 <label for="pages">Comment Pages:</label>
                 <select name="pages" id="pages">
                     <?php echo $pagesOption; ?>

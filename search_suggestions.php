@@ -21,52 +21,39 @@ $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
 
-$sc_id = $_GET['sc_id'];
-$suggestions_id = $_GET['sid'];
 $currentUserId = $_SESSION['nric'];
 
 // note: to check currentuser if same user as the create user
 
-$commentdata = "";
+$suggestionsdata = "";
 //echo $suggestions_id;
-$commentsectionMSG = "";
+$searchMSG = $queryResult = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['updateComment'])) {
-    $commentgiven = $_POST['comment'];
-    if (!(is_null($commentgiven)) && strlen(trim($commentgiven)) > 0) {
-        if ($sAPI->updateSuggestionComment($sc_id, $commentgiven)) {
-            $commentsectionMSG = $sAPI->msgbox(1, "Successful update comment!!");
+if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['searchSuggestions'])) {
+    $search = $_POST['search'];
+    if (!(is_null($search)) && strlen(trim($search)) > 0) {
+        $squery = $sAPI->searchSuggestions($search);
+
+        if (is_null($squery)) {
+            $queryResult = $queryResult . "There is no result for your search";
         } else {
-            $commentsectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+            foreach ($squery as $details) {
+                $sId = $details['SUGGESTIONS_ID'];
+                $sTitle = $details['SUGGESTIONS_TITLE'];
+                $sDetails = $details['SUGGESTIONS_DETAILS'];
+                $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
+                $cCreatedBy = $details['USER_NRIC'];
+                $userUsername = $uAPI->getUserUsername($cCreatedBy);
+                $voteCount = $sAPI->getVote($sId);
+
+                $queryResult = $queryResult . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+            }
         }
     } else {
-        $commentsectionMSG = $sAPI->msgbox(2, "Please make sure your comment is there");
-    }
-}
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['deleteComment'])) {
-    $tmpsid = $_POST['tmpsid'];
-    if ($sAPI->deleteSuggestionComment($sc_id)) {
-        //$commentsectionMSG = "<script type='text/javascript'>alert('Delete Successful!');window.location.href = 'view_suggestions.php?id=$tmpsid';</script>";
-        header('Location: view_suggestions.php?id=' . $tmpsid . '&msgt=1&msg=Delete the comment Successful!');
-        exit;
-    } else {
-        $commentsectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+        $searchMSG = "<span class='text-info'>Please make sure your search is not empty</span>";
     }
 }
 
-$detail = $sAPI->getSuggestionsCommentDetails($sc_id);
-if (!(is_null($detail))) {
-    foreach ($detail as $details) {
-        $sID = $details['SUGGESTIONS_ID'];
-        $sDetails = $details['COMMENT'];
-        $sCreatedDate = $details['COMMENT_DATE_TIME'];
-        $cCreatedBy = $details['USER_NRIC'];
-        $userUsername = $uAPI->getUserUsername($cCreatedBy);
-
-        $suggestionsdatav2 = array('suggestionsdetails' => $sDetails);
-        $commentdata = $sDetails;
-    }
-}
 ?>
 
 <!doctype html>
@@ -151,17 +138,6 @@ if (!(is_null($detail))) {
         </div>
     </nav>
 
-    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-    <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
-      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
-    </symbol>
-    <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
-      <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
-    </symbol>
-    <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
-      <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
-    </symbol>
-  </svg>
 
     <main class="container">
         <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
@@ -173,28 +149,32 @@ if (!(is_null($detail))) {
 
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <div class="d-flex justify-content-between border-bottom">
-                <h6 class="pb-2 mb-0">Comment</h6>
-                <a href="view_suggestions.php?id=<?php echo $sID; ?>"><button class="btn btn-success">Back</button></a>
+                <h6 class="pb-2 mb-0">Search Suggestions</h6>
+                <a href="homepage.php"><button class="btn btn-success">Back</button></a>
             </div>
             <span>
-                <?php echo $commentsectionMSG; ?>
+                <?php echo $searchMSG; ?>
             </span>
             <br>
-            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?sc_id=" . $sc_id . "&sid=" . $suggestions_id; ?>" method="POST">
+
+            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
                 <div class="form-floating">
-                    <input type="text" class="form-control" id="commentID" name="comment" placeholder="your comment" autocomplete="off" maxlength="280" onclick="checkLen(this.value)" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)">
-                    <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
-                    <label for="commentID">Your comment...<span id="counterDisplay"></span></label>
-                    <div class="d-flex justify-content-between">
-                        <strong class="text-primary"></strong>
-                        <span>
-                            <input type="submit" name="updateComment" value="update" class="btn btn-primary" id="commentBtn" disabled>
-                            <input type="submit" name="deleteComment" value="delete" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete the comment?')">
-                        </span>
-                    </div>
+                    <input type="text" class="form-control" id="searchID" name="search" placeholder="your search" autocomplete="off" required>
+                    <label for="searchID">Your search...</label>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <strong class="text-primary"></strong>
+                    <span>
+                        <input type="submit" name="searchSuggestions" value="search" class="btn btn-primary" id="searchBtn">
+                    </span>
                 </div>
             </form>
             <div class="border-bottom my-3"></div>
+        </div>
+
+        <div class="my-3 p-3 bg-body rounded shadow-sm">
+            <h6 class="border-bottom pb-2 mb-0">Results:</h6>
+            <?php echo $queryResult; ?>
         </div>
 
         <div class="text-center">
@@ -208,21 +188,6 @@ if (!(is_null($detail))) {
         </footer>
     </div>
     <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    <script type="text/javascript">
-        function checkLen(val) {
-            if (val.length > 0) {
-                document.getElementById('counterDisplay').innerHTML = '(' + val.length + ' / 280)';
-                document.getElementById('commentBtn').disabled = false;
-            } else {
-                document.getElementById('counterDisplay').innerHTML = '';
-                document.getElementById('commentBtn').disabled = true;
-            }
-        }
-
-        let sdv2 = <?php echo json_encode($suggestionsdatav2); ?>;
-        document.getElementById('commentID').value = sdv2.suggestionsdetails;
-
-    </script>
     <script src="js/offcanvas.js"></script>
 </body>
 
