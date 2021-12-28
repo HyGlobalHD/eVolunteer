@@ -162,7 +162,7 @@ function getComment($vp_id, $offsets, $limits)
         $commentdata = "There is no available comment...";
     } else {
         foreach ($commentdetail as $commentdetails) {
-            $sc_id = $commentdetails['VC_ID'];
+            $vc_id = $commentdetails['VC_ID'];
             $sId = $commentdetails['VP_ID'];
             $cComment = $commentdetails['COMMENT'];
             $cDateTime = $commentdetails['COMMENT_DATE_TIME'];
@@ -170,7 +170,7 @@ function getComment($vp_id, $offsets, $limits)
             $userUsername = $uAPI->getUserUsername($pickedBy);
 
             if ($pickedBy == $currentUserId) {
-                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='vp_comment.php?sc_id=$sc_id&sid=$sId'>Change</a></span></div></div></div>";
+                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='vp_comment.php?vc_id=$vc_id&sid=$sId'>Change</a></span></div></div></div>";
                 /*
                 <form class='border-bottom my-3' action='<?php echo htmlspecialchars(".$_SERVER['PHP_SELF'].") . '?id=' . $vp_id; ?>' method='POST'>
                     <div class='form-floating'>

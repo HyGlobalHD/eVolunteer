@@ -21,10 +21,11 @@ $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
 
+$vp_id = $_GET['id'];
 $currentUserId = $_SESSION['nric'];
-$sid = $_GET['sid'];
-if(!$sAPI->checkSuggestionsExist($sid)) {
-    header("location: homepage.php?msgt=0&msg=There is no suggestions post with the selected data.");
+
+if(!$sAPI->checkVPExist($vp_id)) {
+    header("location: homepage.php?msgt=0&msg=There is no volunteer post with the selected data.");
     exit;
 }
 
@@ -34,19 +35,16 @@ $volunteersdata = "";
 //echo $volunteers_id;
 $volunteerssectionMSG = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createVolunteerProgram'])) {
+if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['updateVolunteer'])) {
     $vp_title = $_POST['vp_title'];
     $vp_details = $_POST['vp_details'];
     $vp_start_date = $_POST['vp_start_date'];
     $vp_end_date = $_POST['vp_end_date'];
     $vp_min_volunteers = $_POST['vp_min_volunteers'];
+    $tmpvp_ids = $_POST['tmpvp_id'];
     if (!(is_null($vp_details)) && strlen(trim($vp_details)) > 0 && !(is_null($vp_title)) && strlen(trim($vp_title)) > 0) {
-        $tmpsid = $sAPI->createVolunteerProgram($vp_title, $vp_details, $vp_start_date, $vp_end_date, $vp_min_volunteers, $currentUserId, $sid);
-        if (!(is_null($tmpsid))) {
-            //$volunteerssectionMSG = "<span class='text-success'>Successful create volunteers!!</span>";
-            //$volunteerssectionMSG = "<script type='text/javascript'>alert('Successful create volunteers!!');window.location.href = 'view_volunteers.php?id=$tmpsid';</script>";
-            header("location: view_volunteers.php?id=$tmpsid&msgt=1&msg=Successful create volunteers program!!");
-            exit;
+        if ($sAPI->updateVolunteerProgram($vp_id, $vp_title, $vp_details, $vp_start_date, $vp_end_date, $vp_min_volunteers)) {
+            $volunteerssectionMSG = $sAPI->msgbox(1, "Successful update the suggestions!!");
         } else {
             $volunteerssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
         }
@@ -55,18 +53,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createVolunteerProgra
     }
 }
 
-$detail = $sAPI->getSuggestionsDetails($sid);
+if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['deleteVolunteer'])) {
+    $tmpvp_id = $_POST['tmpvp_id'];
+    if ($sAPI->deleteVolunteerProgram($tmpvp_id)) {
+        header('Location: homepage.php?msgt=1&msg=Delete the volunteer program Successful!');
+        exit;
+    } else {
+        $volunteerssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+    }
+}
+
+$detail = $sAPI->getVolunteerProgramDetails($vp_id);
 if(!(is_null($detail))) {
     foreach ($detail as $details) {
-        $sID = $details['SUGGESTIONS_ID'];
-        $sDetails = $details['SUGGESTIONS_DETAILS'];
-        $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-        $cCreatedBy = $details['USER_NRIC'];
-        $userUsername = $uAPI->getUserUsername($cCreatedBy);
+        $vp_title = $details['VP_TITLE'];
+        $vp_details = $details['VP_DETAILS'];
+        $vp_start_date = $details['VP_START_DATE'];
+        $vp_end_date = $details['VP_END_PROGRAM'];
+        $vp_min_volunteers = $details['VP_MINIMUM_PARTICIPANT'];
+        $vp_picked_by = $details['USER_NRIC'];
+        $userUsername = $uAPI->getUserUsername($vp_picked_by);
     
-        $suggestionsdatav2 = array('suggestionsdetails' => $sDetails);
-        $suggestionstitlev2 = array('suggestionstitle' => $details['SUGGESTIONS_TITLE']);
-        $suggestionsdata = $sDetails;
+        $volunteerdatav2 = array('volunteerdetails' => $vp_details);
+        $volunteertitlev2 = array('volunteertitle' => $details['VP_TITLE']);
+        $volunteerdata = $vp_details;
     }
 }
 ?>
@@ -112,7 +122,7 @@ if(!(is_null($detail))) {
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark" aria-label="Main navigation">
         <div class="container-fluid">
             <span class="navbar-brand" style="pointer-events: none;cursor: default;"><span style="color: #7289DA;">e</span>Volunteer</span>
-            <button class="navbar-toggler p-0 border-0" type="button" id="navbarSideCollapse" aria-label="Toggle navigation">
+            <button class="navbar-toggler p-0 border-0" type="button" id="navbarvp_ideCollapse" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -132,7 +142,7 @@ if(!(is_null($detail))) {
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="volunteer_program.php">Volunteer Program</a>
+                        <a class="nav-link" href="VP_program.php">Volunteer Program</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Participation Status</a>
@@ -158,47 +168,48 @@ if(!(is_null($detail))) {
         <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
             <div class="lh-1">
                 <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-                <small>volunteers</small>
+                <small>Volunteer Program</small>
             </div>
         </div>
 
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <div class="d-flex justify-content-between border-bottom">
                 <h6 class="pb-2 mb-0">New volunteers program</h6>
-                <a href="view_volunteers.php?id=<?php echo $sID; ?>"><button class="btn btn-success">Back</button></a>
+                <a href="view_volunteers.php?id=<?php echo $vp_id; ?>"><button class="btn btn-success">Back</button></a>
             </div>
             <span>
                 <?php echo $volunteerssectionMSG; ?>
             </span>
             <br>
 
-            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"])."?sid=". $sid; ?>" method="POST">
+            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"])."?id=".$vp_id; ?>" method="POST">
                 <div class="form-floating">
                     <input type="text" class="form-control" id="vp_titleID" name="vp_title" placeholder="your volunteers title" autocomplete="off" maxlength="50" required>
                     <label for="vp_titleID">Your volunteers title...</label>
                 </div>
                 <div class="form-floating">
-                    <textarea class="form-control form-outline rounded-0" id="volunteers_detailsID" name="vp_details" placeholder="your volunteers" autocomplete="off" rows="30" cols="80" tabindex="3" data-type="CHAR" aria-invalid="false" style="height: 100%;" required></textarea>
-                    <label for="volunteersID">Your volunteers...</label>
+                    <textarea class="form-control form-outline rounded-0" id="volunteers_detailvp_id" name="vp_details" placeholder="your volunteers" autocomplete="off" rows="30" cols="80" tabindex="3" data-type="CHAR" aria-invalid="false" style="height: 100%;" required></textarea>
+                    <label for="volunteervp_id">Your volunteers...</label>
                 </div>
                 <div class="form-floating">
-                    <input type="date" class="form-control" id="vp_start_date" name="vp_start_date" placeholder="volunteers start date" autocomplete="off" required>
+                    <input type="date" class="form-control" value="<?php echo $vp_start_date; ?>" id="vp_start_date" name="vp_start_date" placeholder="volunteers start date" autocomplete="off" required>
                     <label for="vp_start_date">volunteers start date</label>
                 </div>
                 <div class="form-floating">
-                    <input type="date" class="form-control" id="vp_end_date" name="vp_end_date" placeholder="volunteers end date" autocomplete="off" required>
+                    <input type="date" class="form-control" value="<?php echo $vp_end_date; ?>" id="vp_end_date" name="vp_end_date" placeholder="volunteers end date" autocomplete="off" required>
                     <label for="vp_end_date">volunteers end date</label>
                 </div>
                 <div class="form-floating">
-                    <input type="number" class="form-control" id="vp_min_volunteers" name="vp_min_volunteers" placeholder="volunteers minimum participant" autocomplete="off" required>
+                    <input type="number" class="form-control" value="<?php echo $vp_min_volunteers; ?>" id="vp_min_volunteers" name="vp_min_volunteers" placeholder="volunteers minimum participant" autocomplete="off" required>
                     <label for="vp_min_volunteers">volunteers minimum participant</label>
                 </div>
-                <input name="tmpsid" type="hidden" value="<?php echo $sid; ?>">
+                <input name="tmpvp_id" type="hidden" value="<?php echo $vp_id; ?>">
                 <div class="d-flex justify-content-between">
                     <strong class="text-primary"></strong>
-                    <span>
-                        <input type="submit" name="createVolunteerProgram" value="create" class="btn btn-primary" id="volunteersBtn">
-                    </span>
+                        <span>
+                            <input type="submit" name="updateVolunteer" value="update" class="btn btn-primary" id="VolunteerBtn">
+                            <input type="submit" name="deleteVolunteer" value="delete" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete the volunteer program?')">
+                        </span>
                 </div>
             </form>
             <div class="border-bottom my-3"></div>
@@ -216,10 +227,10 @@ if(!(is_null($detail))) {
     </div>
     <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script type="text/javascript">
-        let sdtv2 = <?php echo json_encode($suggestionstitlev2); ?>;
-        document.getElementById('vp_titleID').value = sdtv2.suggestionstitle;
-        let sdv2 = <?php echo json_encode($suggestionsdatav2); ?>;
-        document.getElementById('volunteers_detailsID').value = sdv2.suggestionsdetails;
+        let sdtv2 = <?php echo json_encode($volunteertitlev2); ?>;
+        document.getElementById('vp_titleID').value = sdtv2.volunteertitle;
+        let sdv2 = <?php echo json_encode($volunteerdatav2); ?>;
+        document.getElementById('volunteers_detailvp_id').value = sdv2.volunteerdetails;
     </script>
     <script src="js/offcanvas.js"></script>
 </body>

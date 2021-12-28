@@ -144,8 +144,15 @@ if (is_null($detail)) {
               <li><a class="dropdown-item" href="search_suggestions.php">Search Suggestions</a></li>
             </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="volunteer_program.php">Volunteer Program</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Volunteer Program</a>
+            <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
+              <li><a class="dropdown-item" href="volunteer_program.php">All Volunteer Program</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="search_volunteer.php">Search Volunteer Program</a></li>
+            </ul>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Participation Status</a>
