@@ -507,6 +507,47 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         }
     }
 
+    // search volunteer program with user table
+
+    public function searchVolunteerProgram($search)
+    {
+        // search sql from suggestions table and user table
+        $sql = "SELECT volunteer_program.*, user.USER_USERNAME FROM volunteer_program LEFT JOIN user ON volunteer_program.USER_NRIC = user.USER_NRIC WHERE volunteer_program.VP_TITLE LIKE '%$search%' OR user.USER_USERNAME LIKE '%$search%'";
+        $result = $this->connect()->query($sql);
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+    }
+
+    // update volunteer program
+    public function updateVolunteerProgram($vp_id, $vp_title, $vp_details, $vp_start_date, $vp_end_program, $vp_minimum_participant) {
+        $update = "UPDATE volunteer_program SET VP_TITLE = ?, VP_DETAILS = ?, VP_START_DATE = ?, VP_END_PROGRAM = ?, VP_MINIMUM_PARTICIPANT = ? WHERE VP_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($update);
+        $stmt->bind_param("ssssis", $vp_title, $vp_details, $vp_start_date, $vp_end_program, $vp_minimum_participant, $vp_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+        return $result;
+    }
+    // delete volunteer program
+    public function deleteVolunteerProgram($vp_id) {
+        $delete = "DELETE FROM volunteer_program WHERE VP_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($delete);
+        $stmt->bind_param("s", $vp_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+        return $result;
+    }
+
     public function getVolunteerProgramDetails($vp_id) {
         $sql = "SELECT * FROM volunteer_program WHERE VP_ID = ?";
         $conn = $this->connect();
@@ -557,6 +598,50 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
                 return $data;
             }
         }
+    }
+
+    // update volunteer program
+    public function updateVolunteerComment($vc_id, $vc_comment) {
+        $update = "UPDATE vp_comment SET COMMENT = ? WHERE VC_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($update);
+        $stmt->bind_param("ss", $vc_comment, $vc_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+        return $result;
+    }
+
+    // delete volunteer comment
+    public function deleteVolunteerComment($vc_id) {
+        $delete = "DELETE FROM vp_comment WHERE VC_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($delete);
+        $stmt->bind_param("s", $vc_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+        return $result;
+    }
+    // get volunteer comment details
+    public function getVolunteerComment($vc_id) {
+        $sql = "SELECT * FROM vp_comment WHERE VC_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vc_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if($numRows > 0) {
+                while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        $stmt->close();
+        $conn->close();
     }
 
     
