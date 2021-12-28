@@ -1,0 +1,6 @@
+<?
+
+class utils extends db {
+
+
+}
