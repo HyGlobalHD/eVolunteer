@@ -13,6 +13,10 @@ TODO today:
 - [x] fix the search query
 - [ ] volunteer program
 - [ ] user profile
+- [ ] check username to make it only unique // one only
+- [ ] send alert to user if the participate estimated date start is nearly
+- [ ] possible to email notification 
+- [ ] check and make sure to clean unuse code
 
 
 
