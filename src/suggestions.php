@@ -445,7 +445,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         return $output;
     }
 
-    public function checkVPExist($vp_id) {
+    public function checkVPExist($vp_id)
+    {
         $sql = "SELECT * FROM volunteer_program WHERE VP_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
@@ -466,7 +467,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $conn->close();
     }
 
-    public function checkSuggestionsExist($suggestions_id) {
+    public function checkSuggestionsExist($suggestions_id)
+    {
         $sql = "SELECT SUGGESTIONS_ID FROM suggestions WHERE SUGGESTIONS_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
@@ -487,12 +489,13 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $conn->close();
     }
 
-    public function createVolunteerProgram($vp_title, $vp_details, $vp_start_date, $vp_end_program, $vp_minimum_participant, $user_nric, $suggestions_id) {
+    public function createVolunteerProgram($vp_title, $vp_details, $vp_start_date, $vp_end_program, $vp_minimum_participant, $user_nric, $suggestions_id)
+    {
         $insert = "INSERT INTO volunteer_program(VP_ID, VP_TITLE, VP_DETAILS, VP_START_DATE, VP_END_PROGRAM, VP_MINIMUM_PARTICIPANT, USER_NRIC, SUGGESTIONS_ID, VP_PICKED_DATE) VALUES(?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
         $conn = $this->connect();
         $stmt = $conn->prepare($insert);
         $vp_id = uniqid('', true);
-        while($this->checkVPExist($vp_id)) {
+        while ($this->checkVPExist($vp_id)) {
             $vp_id = uniqid('', true);
         }
         // note minimum participant is integer value
@@ -526,7 +529,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
     }
 
     // update volunteer program
-    public function updateVolunteerProgram($vp_id, $vp_title, $vp_details, $vp_start_date, $vp_end_program, $vp_minimum_participant) {
+    public function updateVolunteerProgram($vp_id, $vp_title, $vp_details, $vp_start_date, $vp_end_program, $vp_minimum_participant)
+    {
         $update = "UPDATE volunteer_program SET VP_TITLE = ?, VP_DETAILS = ?, VP_START_DATE = ?, VP_END_PROGRAM = ?, VP_MINIMUM_PARTICIPANT = ? WHERE VP_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($update);
@@ -537,7 +541,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         return $result;
     }
     // delete volunteer program
-    public function deleteVolunteerProgram($vp_id) {
+    public function deleteVolunteerProgram($vp_id)
+    {
         $delete = "DELETE FROM volunteer_program WHERE VP_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($delete);
@@ -548,7 +553,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         return $result;
     }
 
-    public function getVolunteerProgramDetails($vp_id) {
+    public function getVolunteerProgramDetails($vp_id)
+    {
         $sql = "SELECT * FROM volunteer_program WHERE VP_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
@@ -557,7 +563,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $result = $stmt->get_result();
         if ($result) {
             $numRows = $result->num_rows;
-            if($numRows > 0) {
+            if ($numRows > 0) {
                 while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
                     $data[] = $row;
                 }
@@ -583,7 +589,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
             }
         }
     }
-    
+
     public function getVolunteerCommentLimitOrder($vp_id, $offset, $limit, $order)
     {
         $order = strtoupper($order);
@@ -601,7 +607,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
     }
 
     // update volunteer program
-    public function updateVolunteerComment($vc_id, $vc_comment) {
+    public function updateVolunteerComment($vc_id, $vc_comment)
+    {
         $update = "UPDATE vp_comment SET COMMENT = ? WHERE VC_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($update);
@@ -613,7 +620,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
     }
 
     // delete volunteer comment
-    public function deleteVolunteerComment($vc_id) {
+    public function deleteVolunteerComment($vc_id)
+    {
         $delete = "DELETE FROM vp_comment WHERE VC_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($delete);
@@ -624,7 +632,8 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         return $result;
     }
     // get volunteer comment details
-    public function getVolunteerComment($vc_id) {
+    public function getVolunteerComment($vc_id)
+    {
         $sql = "SELECT * FROM vp_comment WHERE VC_ID = ?";
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
@@ -633,7 +642,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $result = $stmt->get_result();
         if ($result) {
             $numRows = $result->num_rows;
-            if($numRows > 0) {
+            if ($numRows > 0) {
                 while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
                     $data[] = $row;
                 }
@@ -644,7 +653,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $conn->close();
     }
 
-    
+
     public function getUserParticipate($user_nric, $vp_id)
     {
         $sql = "SELECT * FROM participate WHERE USER_NRIC = ? AND VP_ID = ?";
@@ -667,16 +676,181 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $conn->close();
     }
 
+    public function checkCurrentDateTimeVP($vp_id)
+    {
+        $sql = "SELECT VP_ID FROM volunteer_program WHERE VP_ID = ? AND CURRENT_DATE() BETWEEN VP_START_DATE AND VP_END_PROGRAM";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public function checkPastDateTimeVP($vp_id)
+    {
+        $sql = "SELECT VP_ID FROM volunteer_program WHERE VP_ID = ? AND CURRENT_DATE() > VP_START_DATE AND CURRENT_DATE() > VP_END_PROGRAM";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public function checkOngoingVP($vp_id)
+    {
+        $sql = "SELECT VP_ID FROM volunteer_program WHERE VP_ID = ? AND CURRENT_DATE() BETWEEN VP_START_DATE AND VP_END_PROGRAM";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public function checkUpcomingVP($vp_id) {
+        $sql = "SELECT VP_ID FROM volunteer_program WHERE VP_ID = ? AND CURRENT_DATE() < VP_START_DATE";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    // return volunteer program details
+    public function getOngoingVP($vp_id)
+    {
+        $sql = "SELECT * FROM volunteer_program WHERE VP_ID = ? AND CURRENT_DATE() BETWEEN VP_START_DATE AND VP_END_PROGRAM";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if($result) {
+            $numRows = $result->num_rows;
+            if($numRows > 0) {
+                while($row = $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+    }
+
+    public function getUpcomingVP($vp_id) {
+        $sql = "SELECT * FROM volunteer_program WHERE VP_ID = ? AND CURRENT_DATE() < VP_START_DATE";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if($result) {
+            $numRows = $result->num_rows;
+            if($numRows > 0) {
+                while($row = $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+    }
+
+    public function checkConfictingDateVP($vp_id1, $vp_id2) {
+        $sql = "SELECT VP_ID FROM volunteer_program WHERE VP_ID = ? AND VP_START_DATE BETWEEN (SELECT VP_START_DATE FROM volunteer_program WHERE VP_ID = ?) AND (SELECT VP_END_PROGRAM FROM volunteer_program WHERE VP_ID = ?)";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("sss", $vp_id1, $vp_id2, $vp_id2);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
     public function createUserParticipate($user_nric, $vp_id)
     {
-        $insert = "INSERT INTO participate(USER_NRIC, VP_ID, PARTICIPATE_DATE, PARTICIPATE_NOTIFIED) VALUES(?, ?, CURRENT_TIMESTAMP, 0)";
-        $conn = $this->connect();
-        $stmt = $conn->prepare($insert);
-        $stmt->bind_param("ss", $user_nric, $vp_id);
-        $result = $stmt->execute();
-        $stmt->close();
-        $conn->close();
-        return $result;
+        if ($this->getUserParticipate($user_nric, $vp_id)) {
+            return false;
+        } else {
+            $insert = "INSERT INTO participate(USER_NRIC, VP_ID, PARTICIPATE_DATE, PARTICIPATE_NOTIFIED) VALUES(?, ?, CURRENT_TIMESTAMP, 0)";
+
+            // check if user have participant in other volunteer program
+            if ($this->checkParticipate($user_nric)) {
+                $rvp_id = $this->getUserVPParticipate($user_nric);
+                if (!(is_null($rvp_id))) {
+                    foreach ($rvp_id as $rvp_ids) {
+                        //if ($this->checkCurrentDateTimeVP($rvp_ids['VP_ID'])) {
+                            // not allow to participate in other volunteer program
+                            //return false;
+                        //}
+                        if($this->checkConfictingDateVP($vp_id, $rvp_ids['VP_ID'])) {
+                            // not allow to participate in other volunteer program
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            if($this->checkPastDateTimeVP($vp_id)){
+                return false;
+            }
+            if($this->checkOngoingVP($vp_id)){
+                return false;
+            }
+            // allow to participate in other volunteer program
+            $conn = $this->connect();
+            $stmt = $conn->prepare($insert);
+            $stmt->bind_param("ss", $user_nric, $vp_id);
+            $result = $stmt->execute();
+            $stmt->close();
+            $conn->close();
+            return $result;
+        }
     }
 
     public function deleteUserParticipate($user_nric, $vp_id)
@@ -690,7 +864,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $conn->close();
         return $result;
     }
-    
+
     public function getParticipateCount($vp_id)
     {
         // note doesn't involved in user input, hence doesn't need to use prepared statemen
@@ -701,7 +875,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
             return $row['c'];
         }
     }
-    
+
     public function getUserVPCommentCount($vp_id, $user_nric)
     {
         // note doesn't involved in user input, hence doesn't need to use prepared statemen
@@ -712,7 +886,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
             return $row['c'];
         }
     }
-    
+
     public function checkVCExist($vc_id)
     {
         // note doesn't involved in user input, hence doesn't need to use prepared statemen
@@ -743,5 +917,48 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $stmt->close();
         $conn->close();
         return $result;
+    }
+
+    // check if user has already participated in a volunteer project
+    public function checkParticipate($user_nric)
+    {
+        $sql = "SELECT VP_ID FROM participate WHERE USER_NRIC = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $user_nric);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        $stmt->close();
+        $conn->close();
+    }
+
+    // get all volunteer project that user has participated
+    public function getUserVPParticipate($user_nric)
+    {
+        $sql = "SELECT * FROM participate WHERE USER_NRIC = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $user_nric);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        $stmt->close();
+        $conn->close();
     }
 }
