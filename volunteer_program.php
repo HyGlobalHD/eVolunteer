@@ -71,8 +71,9 @@ function getVolunteerPost($offsets, $limits)
       $cCreatedBy = $details['USER_NRIC'];
       $userUsername = $uAPI->getUserUsername($cCreatedBy);
       $voteCount = $sAPI->getVote($details['SUGGESTIONS_ID']);
+      $currParticipate = $sAPI->getParticipateCount($sId);
   
-      $volunteerProgram = $volunteerProgram . "<a href='view_volunteers.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+      $volunteerProgram = $volunteerProgram . "<a href='view_volunteers.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>@" . $userUsername . "</span><span>Participant: " . $currParticipate . "</span></div><span>" . $sCreatedDate . "</span></div></div></a>";
     }
   }
   return $volunteerProgram;

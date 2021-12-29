@@ -11,15 +11,22 @@ include 'src/users.php';
 session_start();
 
 // check whether user already login
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
   // nric // groupcode
-}else {
+} else {
   header("location: user_login.php?msgt=2&msg=Please login first.");
   exit;
 }
 
-$top3 = "";
-$recent3 = "";
+$currUser = $_SESSION["nric"];
+/**
+ * participant_status.php
+ * shows the current ongoing/upcoming volunteer program that user participate
+ * shows the history/list of volunteer program that user participated
+ */
+$ongoingvpcontent = "";
+$upcomingvpcontent = "";
+$historyvpcontent = "";
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
@@ -27,52 +34,80 @@ $uAPI = new users();
 
 $msgt = "";
 if (isset($_GET['msgt']) && isset($_GET['msg'])) {
-  $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
+  $msgt = $msgt . $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
   // get the message type based on the numeric value
 }
 
 
 
-// show top 3 suggestions
-$detail = $sAPI->getTopSuggestionsLimitOrder(0, 3, 'DESC');
-if (is_null($detail)) {
-  $top3 = $top3 . "There is no top suggestions available for now.";
-} else {
+$detail = $sAPI->getUserVPParticipate($currUser);
+if (!(is_null($detail))) {
   foreach ($detail as $details) {
-    $sId = $details['SUGGESTIONS_ID'];
-    if ($sAPI->checkVP($sId) == false) {
-      $sTitle = $details['SUGGESTIONS_TITLE'];
-      $sDetails = $details['SUGGESTIONS_DETAILS'];
-      $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-      $cCreatedBy = $details['USER_NRIC'];
-      $userUsername = $uAPI->getUserUsername($cCreatedBy);
-      $voteCount = $sAPI->getVote($sId);
+    $vp_id = $details['VP_ID'];
+    $participate_date = $details['PARTICIPATE_DATE'];
+    $participate_notified = $details['PARTICIPATE_NOTIFIED'];
 
-      $top3 = $top3 . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+    if ($sAPI->checkUpcomingVP($vp_id)) {
+      $upcomingvp = $sAPI->getUpcomingVP($vp_id);
+      if (!(is_null($upcomingvp))) {
+        foreach ($upcomingvp as $upcomingvps) {
+          $sId = $upcomingvps['VP_ID'];
+          $sTitle = $upcomingvps['VP_TITLE'];
+          $sDetails = $upcomingvps['VP_DETAILS'];
+          $sCreatedDate = $upcomingvps['VP_PICKED_DATE'];
+          $cCreatedBy = $upcomingvps['USER_NRIC'];
+          $userUsername = $uAPI->getUserUsername($cCreatedBy);
+          $voteCount = $sAPI->getVote($upcomingvps['SUGGESTIONS_ID']);
+          $currParticipate = $sAPI->getParticipateCount($sId);
+          // TODO
+          $upcomingvpcontent = $upcomingvpcontent . "<a href='view_volunteers.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>@" . $userUsername . "</span><span>Participant: " . $currParticipate . "</span></div><span>" . $sCreatedDate . "</span></div></div></a>";
+        }
+      }
+    }
+    if ($sAPI->checkOngoingVP($vp_id)) {
+      $ongoingvp = $sAPI->getOngoingVP($vp_id);
+      if (!(is_null($ongoingvp))) {
+        foreach ($ongoingvp as $ongoingvps) {
+          $sId = $ongoingvps['VP_ID'];
+          $sTitle = $ongoingvps['VP_TITLE'];
+          $sDetails = $ongoingvps['VP_DETAILS'];
+          $sCreatedDate = $ongoingvps['VP_PICKED_DATE'];
+          $cCreatedBy = $ongoingvps['USER_NRIC'];
+          $userUsername = $uAPI->getUserUsername($cCreatedBy);
+          $voteCount = $sAPI->getVote($ongoingvps['SUGGESTIONS_ID']);
+          $currParticipate = $sAPI->getParticipateCount($sId);
+          // TODO
+          $ongoingvpcontent = $ongoingvpcontent . "<a href='view_volunteers.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>@" . $userUsername . "</span><span>Participant: " . $currParticipate . "</span></div><span>" . $sCreatedDate . "</span></div></div></a>";
+        }
+      }
+    }
+    if (!($sAPI->checkOngoingVP($vp_id)) && !($sAPI->checkUpcomingVP($vp_id))) {
+      $arrhistory = $sAPI->getVolunteerProgramDetails($vp_id);
+      if (!(is_null($arrhistory))) {
+        foreach ($arrhistory as $arrhistorys) {
+          $sId = $arrhistorys['VP_ID'];
+          $sTitle = $arrhistorys['VP_TITLE'];
+          $sDetails = $arrhistorys['VP_DETAILS'];
+          $sCreatedDate = $arrhistorys['VP_PICKED_DATE'];
+          $cCreatedBy = $arrhistorys['USER_NRIC'];
+          $userUsername = $uAPI->getUserUsername($cCreatedBy);
+          $voteCount = $sAPI->getVote($arrhistorys['SUGGESTIONS_ID']);
+          $currParticipate = $sAPI->getParticipateCount($sId);
+          // TODO
+          $historyvpcontent = $historyvpcontent . "<a href='view_volunteers.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>@" . $userUsername . "</span><span>Participant: " . $currParticipate . "</span></div><span>" . $sCreatedDate . "</span></div></div></a>";
+        }
+      } 
     }
   }
 }
-
-
-
-// show 5 recent suggestions
-$detail = $sAPI->getRecentSuggestionsLimitOrder(0, 3, 'DESC');
-if (is_null($detail)) {
-  $recent3 = $recent3 . "There is no recent suggestions available for now.";
-} else {
-  foreach ($detail as $details) {
-    $sId = $details['SUGGESTIONS_ID'];
-    if ($sAPI->checkVP($sId) == false) {
-      $sTitle = $details['SUGGESTIONS_TITLE'];
-      $sDetails = $details['SUGGESTIONS_DETAILS'];
-      $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-      $cCreatedBy = $details['USER_NRIC'];
-      $userUsername = $uAPI->getUserUsername($cCreatedBy);
-      $voteCount = $sAPI->getVote($sId);
-
-      $recent3 = $recent3 . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
-    }
-  }
+if($historyvpcontent == ""){
+  $historyvpcontent = "<p class='text-muted'>No history volunteer program available</p>";
+}
+if($ongoingvpcontent == ""){
+  $ongoingvpcontent = "<p class='text-muted'>No ongoing volunteer program available</p>";
+}
+if($upcomingvpcontent == ""){
+  $upcomingvpcontent = "<p class='text-muted'>No upcoming volunteer program available</p>";
 }
 
 ?>
@@ -155,7 +190,7 @@ if (is_null($detail)) {
             </ul>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="participant_status.php">Participation Status</a>
+            <a class="nav-link" href="#">Participation Status</a>
           </li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
@@ -190,26 +225,25 @@ if (is_null($detail)) {
     <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
       <div class="lh-1">
         <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-        <small>Homepage</small>
+        <small>Participant Status</small>
       </div>
     </div>
 
     <?php echo $msgt; ?>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
-      <h6 class="border-bottom pb-2 mb-0">Top 3 Suggestions</h6>
-      <?php echo $top3; ?>
-      <small class="d-block text-end mt-3">
-        <a href="top_suggestions.php" class="text-primary" style="text-decoration: none;">See more top suggestions</a>
-      </small>
+      <h6 class="border-bottom pb-2 mb-0">Ongoing Volunteer Program that you participate</h6>
+      <?php echo $ongoingvpcontent; ?>
     </div>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
-      <h6 class="border-bottom pb-2 mb-0">Recent Suggestions</h6>
-      <?php echo $recent3; ?>
-      <small class="d-block text-end mt-3">
-        <a href="recent_suggestions.php" class="text-primary" style="text-decoration: none;">See more recent suggestions</a>
-      </small>
+      <h6 class="border-bottom pb-2 mb-0">Upcoming Volunteer Program that you participate</h6>
+      <?php echo $upcomingvpcontent; ?>
+    </div>
+
+    <div class="my-3 p-3 bg-body rounded shadow-sm">
+      <h6 class="border-bottom pb-2 mb-0">Your Past Volunteer Program History</h6>
+      <?php echo $historyvpcontent; ?>
     </div>
 
     <div class="text-center">

@@ -28,7 +28,7 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     exit;
 }
 
-if(!$sAPI->checkVPExist($vp_id)) {
+if (!$sAPI->checkVPExist($vp_id)) {
     header("location: homepage.php?msgt=0&msg=There is no volunteer program with the selected data.");
     exit;
 }
@@ -47,7 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['Participatebtn'])) {
     if ($sAPI->createUserParticipate($currentUserId, $vp_id)) {
         $Participatebtnmsg = $sAPI->msgbox(1, "Successfully Participated!");
     } else {
-        $Participatebtnmsg = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+        $Participatebtnmsg = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again. Maybe you already participate in an ongoing volunteer program");
     }
 }
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['unParticipatebtn'])) {
@@ -191,9 +191,31 @@ function getComment($vp_id, $offsets, $limits)
 }
 
 if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
-    $Participatebtn = "<input type='submit' class='btn btn-success' value='unParticipate' name='unParticipatebtn'>";
+    if ($sAPI->checkPastDateTimeVP($vp_id) || $sAPI->checkOngoingVP($vp_id)) {
+        $Participatebtn = "<input type='submit' class='btn btn-success' value='unParticipate' name='unParticipatebtn' disabled>";
+        $msgt = $msgt . $sAPI->msgbox(0, "You can't unparticipate in this program because it's past date or ongoing.");
+    } else {
+        $Participatebtn = "<input type='submit' class='btn btn-success' value='unParticipate' name='unParticipatebtn'>";
+    }
 } else {
-    $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn'>";
+    if ($sAPI->checkPastDateTimeVP($vp_id) || $sAPI->checkOngoingVP($vp_id)) {
+        $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn' disabled>";
+        $msgt = $msgt . $sAPI->msgbox(0, "You can't participate in this program because it's past date or ongoing.");
+    } else {
+        $getAllVP = $sAPI->getUserVPParticipate($currentUserId);
+        if ($getAllVP) {
+            foreach ($getAllVP as $getAllVPs) {
+                if ($sAPI->checkConfictingDateVP($vp_id, $getAllVPs['VP_ID'])) {
+                    // not allow to participate in other volunteer program
+                    $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn' disabled>";
+                } else {
+                    $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn'>";
+                }
+            }
+        } else {
+            $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn'>";
+        }
+    }
 }
 
 ?>
@@ -312,12 +334,12 @@ if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
                 document.getElementById('contentmarkdown').innerHTML = marked.parse(content.replace(/\\n/g, '\n'));
             </script>
             <div class="border-bottom">
-            <div class="text-muted">
-                <span>Estimated Start Date: <?php echo $vp_start_date; ?></span> <br>
-                <span>Estimated End Date: <?php echo $vp_end_date; ?></span> <br>
-                <span>Minimum Participant: <?php echo $vp_minimum_participant; ?></span> <br>
-                <span>Original Suggestions Post: <a href="view_suggestions.php?id=<?php echo $sid; ?>" class="text-primary" style="text-decoration: none;">Click Here</a></span> <br>
-            </div>
+                <div class="text-muted">
+                    <span>Estimated Start Date: <?php echo $vp_start_date; ?></span> <br>
+                    <span>Estimated End Date: <?php echo $vp_end_date; ?></span> <br>
+                    <span>Minimum Participant: <?php echo $vp_minimum_participant; ?></span> <br>
+                    <span>Original Suggestions Post: <a href="view_suggestions.php?id=<?php echo $sid; ?>" class="text-primary" style="text-decoration: none;">Click Here</a></span> <br>
+                </div>
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <strong class="text-primary"></strong>
@@ -325,7 +347,7 @@ if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <span class="text-muted">Like the volunteer program?? Participate Now!!</span>
-                <span>Volunteer Program pivked on: <?php echo $dateCreated; ?></span>
+                <span>Volunteer Program picked on: <?php echo $dateCreated; ?></span>
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <span class="text-primary">
@@ -339,7 +361,7 @@ if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
             <div class="d-flex justify-content-between text-muted">
                 <span></span>
                 <span> Current Participate Count: <?php echo $currParticipate; ?></span>
-    </div>
+            </div>
             <?php echo $checkEditable; ?>
         </div>
 

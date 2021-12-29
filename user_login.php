@@ -6,6 +6,7 @@ session_start(); // start the session
 
 // TODO check user already login or nah
 
+$sAPI = new suggestions();
 $msg = "";
 $nric = $password = "";
 

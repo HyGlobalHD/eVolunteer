@@ -30,6 +30,13 @@ $suggestionsdata = "";
 //echo $suggestions_id;
 $suggestionssectionMSG = "";
 
+
+$msgt = "";
+if (isset($_GET['msgt']) && isset($_GET['msg'])) {
+  $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
+  // get the message type based on the numeric value
+}
+
 $checkerS = $sAPI->checkSuggestionExist($suggestions_id);
 if($checkerS == false || is_null($checkerS)) {
     header('Location: homepage.php');
@@ -73,6 +80,14 @@ if(!(is_null($detail))) {
         $suggestionstitlev2 = array('suggestionstitle' => $details['SUGGESTIONS_TITLE']);
         $suggestionsdata = $sDetails;
     }
+}
+
+$dlbtn = "";
+if($sAPI->checkVP($suggestions_id)) {
+    $dlbtn = "<input type='submit' name='deleteSuggestions' value='delete' class='btn btn-danger' onclick='return confirm('Are you sure you want to delete the suggestions?')' disabled>";
+    $msgt = $msgt . $sAPI->msgbox(0, "You cannot delete the suggestions because it was selected as a volunteer program.");
+} else {
+    $dlbtn = "<input type='submit' name='deleteSuggestions' value='delete' class='btn btn-danger' onclick='return confirm('Are you sure you want to delete the suggestions?')'>";
 }
 ?>
 
@@ -178,6 +193,8 @@ if(!(is_null($detail))) {
             </div>
         </div>
 
+        <?php echo $msgt; ?>
+
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <div class="d-flex justify-content-between border-bottom">
                 <h6 class="pb-2 mb-0">Edit Suggestions</h6>
@@ -202,7 +219,7 @@ if(!(is_null($detail))) {
                         <strong class="text-primary"></strong>
                         <span>
                             <input type="submit" name="updateSuggestions" value="update" class="btn btn-primary" id="suggestionsBtn" disabled>
-                            <input type="submit" name="deleteSuggestions" value="delete" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete the suggestions?')">
+                            <?php echo $dlbtn; ?>
                         </span>
                     </div>
             </form>
