@@ -17,6 +17,8 @@ TODO today:
 - [ ] send alert to user if the participate estimated date start is nearly
 - [ ] possible to email notification 
 - [ ] check and make sure to clean unuse code
+- [ ] todo: disabled changes on volunteer program start date/end date, once it started.
+- [ ] todo: only allow use to create/update the start date in about 2/3 day after the current picked date
 
 
 
