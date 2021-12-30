@@ -1,81 +1,116 @@
 <?php
+// todo user profile
 
-// homepage -> show top suggestions and recent suggestion I guess ???
-// top 3 suggestions
-// below that
-// recent suggestions ??? I guess
+// include libraries
 include 'src/db.php';
 include 'src/suggestions.php';
 include 'src/users.php';
 
+// start session
 session_start();
 
-// check whether user already login
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-  // nric // groupcode
-}else {
-  header("location: user_login.php?msgt=2&msg=Please login first.");
-  exit;
+// check if user is logged in
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+    // nric // groupcode
+} else {
+    header("location: user_login.php?msgt=2&msg=Please login first.");
+    exit;
 }
 
-$top3 = "";
-$recent3 = "";
+// declare new
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
 
+// get session nric
+$currUser = $_SESSION["nric"];
 
+// variables
+$userProfile = "";
 $msgt = "";
+$username = "";
+$nric = "";
+$fullname = "";
+$email = "";
+$phoneno = "";
+$createddate = "";
+$logincount = "";
+$userstatus = "";
+$groupcode = "";
+// msgbox
 if (isset($_GET['msgt']) && isset($_GET['msg'])) {
-  $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
+  $msgt = $msgt . $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
   // get the message type based on the numeric value
 }
 
-
-
-// show top 3 suggestions
-$detail = $sAPI->getTopSuggestionsLimitOrder(0, 3, 'DESC');
-if (is_null($detail)) {
-  $top3 = $top3 . "There is no top suggestions available for now.";
-} else {
-  foreach ($detail as $details) {
-    $sId = $details['SUGGESTIONS_ID'];
-    if ($sAPI->checkVP($sId) == false) {
-      $sTitle = $details['SUGGESTIONS_TITLE'];
-      $sDetails = $details['SUGGESTIONS_DETAILS'];
-      $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-      $cCreatedBy = $details['USER_NRIC'];
-      $userUsername = $uAPI->getUserUsername($cCreatedBy);
-      $voteCount = $sAPI->getVote($sId);
-
-      $top3 = $top3 . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+// an option to check get username if set or not
+if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
+    $searchUsername = $_GET['username'];
+    // show the search username details
+    $searchUsernameNRIC = $uAPI->getUserNRIC($searchUsername); // although it only have one input, it still from an array
+    if(!(is_null($searchUsernameNRIC))) {
+        foreach($searchUsernameNRIC as $searchUsernameNRICs) {
+            $searchUsernameNRIC = $searchUsernameNRICs['USER_NRIC'];
+        }
+        $userdetail = $uAPI->getUserDetails($searchUsernameNRIC);
+        if(!(is_null($userdetail))) {
+            foreach ($userdetail as $userdetails) {
+                // USER_NRIC, USER_USERNAME, USER_FULL_NAME, USER_EMAIL, USER_PHONE_NO, USER_CREATED_DATE, USER_LOGIN_COUNT, USER_STATUS, GROUP_CODE
+                $username = $userdetails['USER_USERNAME'];
+                $nric = $userdetails['USER_NRIC'];
+                $fullname = $userdetails['USER_FULL_NAME'];
+                $email = $userdetails['USER_EMAIL'];
+                $phoneno = $userdetails['USER_PHONE_NO'];
+                $createddate = $userdetails['USER_CREATED_DATE'];
+                $logincount = $userdetails['USER_LOGIN_COUNT'];
+                $userstatus = $userdetails['USER_STATUS'];
+                $groupcode = $userdetails['GROUP_CODE'];
+            
+            
+            }
+        } else {
+            // prompt something wrong happened // bcs the user exist but there was something wrong happened
+            $msgt = $msgt . $sAPI->msgbox(3, "Opsie!! Something went wrong. Please try again.");
+        }
+    } else {
+        // prompt not exist
+        $msgt = $msgt . $sAPI->msgbox(2, "The user you looking for does not exist.");
     }
-  }
+
+
+} else {
+    // show current user profile
+    $userdetail = $uAPI->getUserDetails($currUser);
+    if(!(is_null($userdetail))) {
+        foreach ($userdetail as $userdetails) {
+            // USER_NRIC, USER_USERNAME, USER_FULL_NAME, USER_EMAIL, USER_PHONE_NO, USER_CREATED_DATE, USER_LOGIN_COUNT, USER_STATUS, GROUP_CODE
+            $username = $userdetails['USER_USERNAME'];
+            $nric = $userdetails['USER_NRIC'];
+            $fullname = $userdetails['USER_FULL_NAME'];
+            $email = $userdetails['USER_EMAIL'];
+            $phoneno = $userdetails['USER_PHONE_NO'];
+            $createddate = $userdetails['USER_CREATED_DATE'];
+            $logincount = $userdetails['USER_LOGIN_COUNT'];
+            $userstatus = $userdetails['USER_STATUS'];
+            $groupcode = $userdetails['GROUP_CODE'];
+        
+        
+        }
+    }
 }
 
+/**
+ * so, what will the user profile page show?
+ * 1. the details of the user in a beautiful design layout ( option edit user profile // for current user only // check if the search user is the current user)
+ * 2. the list of the user's suggestions
+ * 3. the list of the user's suggestions that are choosen to be volunteer program
+ * 4. the list of volunteer program that user have participated including the ongoing, upcoming, and past
+ * 5. the list of user achievements
+ * 
+ */
 
-
-// show 5 recent suggestions
-$detail = $sAPI->getRecentSuggestionsLimitOrder(0, 3, 'DESC');
-if (is_null($detail)) {
-  $recent3 = $recent3 . "There is no recent suggestions available for now.";
-} else {
-  foreach ($detail as $details) {
-    $sId = $details['SUGGESTIONS_ID'];
-    if ($sAPI->checkVP($sId) == false) {
-      $sTitle = $details['SUGGESTIONS_TITLE'];
-      $sDetails = $details['SUGGESTIONS_DETAILS'];
-      $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-      $cCreatedBy = $details['USER_NRIC'];
-      $userUsername = $uAPI->getUserUsername($cCreatedBy);
-      $voteCount = $sAPI->getVote($sId);
-
-      $recent3 = $recent3 . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
-    }
-  }
-}
-
-?>
+ ?>
+ 
 <!doctype html>
 <html lang="en">
 
@@ -190,7 +225,7 @@ if (is_null($detail)) {
     <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
       <div class="lh-1">
         <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-        <small>Homepage</small>
+        <small>User Profile - <?php echo $username;  ?></small>
       </div>
     </div>
 
@@ -198,17 +233,13 @@ if (is_null($detail)) {
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
       <h6 class="border-bottom pb-2 mb-0">Top 3 Suggestions</h6>
-      <?php echo $top3; ?>
       <small class="d-block text-end mt-3">
-        <a href="top_suggestions.php" class="text-primary" style="text-decoration: none;">See more top suggestions</a>
       </small>
     </div>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
       <h6 class="border-bottom pb-2 mb-0">Recent Suggestions</h6>
-      <?php echo $recent3; ?>
       <small class="d-block text-end mt-3">
-        <a href="recent_suggestions.php" class="text-primary" style="text-decoration: none;">See more recent suggestions</a>
       </small>
     </div>
 

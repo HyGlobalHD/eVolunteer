@@ -11,12 +11,12 @@ include 'src/users.php';
 
 session_start();
 
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     // nric // groupcode
-  }else {
+} else {
     header("location: user_login.php?msgt=2&msg=Please login first.");
     exit;
-  }
+}
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
@@ -33,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
     $suggestionsgiven = $_POST['suggestions'];
     $suggestionstitlegiven = $_POST['suggestionstitle'];
     if (!(is_null($suggestionsgiven)) && strlen(trim($suggestionsgiven)) > 0 && !(is_null($suggestionstitlegiven)) && strlen(trim($suggestionstitlegiven)) > 0) {
-      $tmpsid = $sAPI->createSuggestions($suggestionstitlegiven, $suggestionsgiven, $currentUserId);
+        $tmpsid = $sAPI->createSuggestions($suggestionstitlegiven, $suggestionsgiven, $currentUserId);
         if (!(is_null($tmpsid))) {
             //$suggestionssectionMSG = "<span class='text-success'>Successful create suggestions!!</span>";
             //$suggestionssectionMSG = "<script type='text/javascript'>alert('Successful create suggestions!!');window.location.href = 'view_suggestions.php?id=$tmpsid';</script>";
@@ -157,15 +157,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
                 </div>
                 <div class="form-floating">
                     <textarea class="form-control form-outline rounded-0" id="suggestionsID" name="suggestions" placeholder="your suggestions" autocomplete="off" rows="30" cols="80" onclick="checkLen(this.value)" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)" tabindex="3" data-type="CHAR" aria-invalid="false" style="height: 100%;" required></textarea>
-                <label for="suggestionsID">Your suggestions...<span id="counterDisplay"></span></label>
+                    <label for="suggestionsID">Your suggestions...<span id="counterDisplay"></span></label>
                 </div>
-                    <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
+                <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
                 <div class="d-flex justify-content-between">
-                        <strong class="text-primary"></strong>
-                        <span>
-                            <input type="submit" name="createSuggestions" value="create" class="btn btn-primary" id="suggestionsBtn" disabled>
-                        </span>
-                    </div>
+                    <strong class="text-primary"></strong>
+                    <span>
+                        <input type="submit" name="createSuggestions" value="create" class="btn btn-primary" id="suggestionsBtn" disabled>
+                    </span>
+                </div>
             </form>
             <div class="border-bottom my-3"></div>
         </div>
@@ -192,6 +192,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
             }
         }
     </script>
+
     <script src="js/offcanvas.js"></script>
 </body>
 

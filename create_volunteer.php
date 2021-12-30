@@ -29,6 +29,7 @@ if(!$sAPI->checkSuggestionsExist($sid)) {
 }
 
 // note: to check currentuser if same user as the create user
+$msgt = "";
 
 $volunteersdata = "";
 //echo $volunteers_id;
@@ -69,6 +70,8 @@ if(!(is_null($detail))) {
         $suggestionsdata = $sDetails;
     }
 }
+
+$msgt = $msgt . $sAPI->msgbox(0, "Please be inform that you can only choose volunteer program date after 1 week or 7 days of current date.");
 ?>
 
 <!doctype html>
@@ -173,6 +176,8 @@ if(!(is_null($detail))) {
             </div>
         </div>
 
+        <?php echo $msgt; ?>
+
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <div class="d-flex justify-content-between border-bottom">
                 <h6 class="pb-2 mb-0">New volunteers program</h6>
@@ -193,11 +198,11 @@ if(!(is_null($detail))) {
                     <label for="volunteersID">Your volunteers...</label>
                 </div>
                 <div class="form-floating">
-                    <input type="date" class="form-control" id="vp_start_date" name="vp_start_date" placeholder="volunteers start date" autocomplete="off" required>
+                    <input type="date" class="form-control" id="vp_start_date" name="vp_start_date" placeholder="volunteers start date" autocomplete="off" min="<?php $date = strtotime("+7 day", strtotime(date("Y-m-d"))); echo date("Y-m-d", $date); ?>" required>
                     <label for="vp_start_date">volunteers start date</label>
                 </div>
                 <div class="form-floating">
-                    <input type="date" class="form-control" id="vp_end_date" name="vp_end_date" placeholder="volunteers end date" autocomplete="off" required>
+                    <input type="date" class="form-control" id="vp_end_date" name="vp_end_date" placeholder="volunteers end date" autocomplete="off" min="<?php $date = strtotime("+7 day", strtotime(date("Y-m-d"))); echo date("Y-m-d", $date); ?>" required>
                     <label for="vp_end_date">volunteers end date</label>
                 </div>
                 <div class="form-floating">
