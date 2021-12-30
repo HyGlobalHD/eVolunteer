@@ -1,89 +1,96 @@
 <?php
 
-// homepage -> show top suggestions and recent suggestion I guess ???
-// top 3 suggestions
-// below that
-// recent suggestions ??? I guess
+// show current user their obtained achievement
+// show the list of avhievement and descriptions
+
+// only admin can change/add/delete it
+
+// include libraries
 include 'src/db.php';
 include 'src/suggestions.php';
 include 'src/users.php';
-include 'src/group.php';
-
 include 'src/achievement.php';
 
+// start session
 session_start();
 
-// check whether user already login
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-  // nric // groupcode
-}else {
-  header("location: user_login.php?msgt=2&msg=Please login first.");
-  exit;
+// check if user is logged in
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+    // nric // groupcode
+} else {
+    header("location: user_login.php?msgt=2&msg=Please login first.");
+    exit;
 }
 
-$currUser = $_SESSION["nric"];
-
-$top3 = "";
-$recent3 = "";
+// instantiate classes
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
-$gAPI = new group();
 $aAPI = new achievement();
 
-$aAPI->achievementValidator($currUser); // maybe just put it here for now // doens't have any plan for it to have at every pages 
-
+// get current user's nric
+$currUser = $_SESSION["nric"];
+$currUsergroupcode = $_SESSION['groupcode'];
+$uacontent = $alistcontent = $checkCreateable = "";
 $msgt = "";
 if (isset($_GET['msgt']) && isset($_GET['msg'])) {
   $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
   // get the message type based on the numeric value
 }
 
+$ualist = $aAPI->getUserAchievement($currUser);
+if(!(is_null($ualist))){
+    foreach ($ualist as $ualists) {
+        // USER_NRIC	ACHIEVEMENT_ID	RECEIVED_DATE -> user_achievement
+        $a_id = $ualists['ACHIEVEMENT_ID'];
+        $a_received = $ualists['RECEIVED_DATE'];
+        
+        // ACHIEVEMENT_ID	ACHIEVEMENT_NAME	ACHIEVEMENT_DESCRIPTION	ACHIEVEMENT_CREATED_DATE USER_NRIC        
+        $adetail = $aAPI->getAchievementDetails($a_id);
+        if(!(is_null($adetail))){
+            foreach($adetail as $adetails) {
+                $a_name = $adetails['ACHIEVEMENT_NAME'];
+                $a_desc = $adetails['ACHIEVEMENT_DESCRIPTION'];
+                $a_created = $adetails['ACHIEVEMENT_CREATED_DATE'];
+                $a_created_by = $adetails['USER_NRIC'];
+    
+                $uacontent = $uacontent . "<div class='d-flex text-muted pt-3'><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class=''><strong class='text-primary'>" . $a_name . "</strong><br><span>" . $a_desc . "</span></div><span class='d-block text-muted'>Recieved on " . $a_received . "</span><span></span></div></div>";
+            }
 
-
-// show top 3 suggestions
-$detail = $sAPI->getTopSuggestionsLimitOrder(0, 3, 'DESC');
-if (is_null($detail)) {
-  $top3 = $top3 . "There is no top suggestions available for now.";
-} else {
-  foreach ($detail as $details) {
-    $sId = $details['SUGGESTIONS_ID'];
-    if ($sAPI->checkVP($sId) == false) {
-      $sTitle = $details['SUGGESTIONS_TITLE'];
-      $sDetails = $details['SUGGESTIONS_DETAILS'];
-      $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-      $cCreatedBy = $details['USER_NRIC'];
-      $userUsername = $uAPI->getUserUsername($cCreatedBy);
-      $voteCount = $sAPI->getVote($sId);
-
-      $top3 = $top3 . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+        }
     }
-  }
+} else {
+    $uacontent = "There is no achievement yet.";
+}
+
+
+$alist = $aAPI->getAllAchievements();
+if(!(is_null($alist))){
+    foreach ($alist as $alists) {
+        // ACHIEVEMENT_ID	ACHIEVEMENT_NAME	ACHIEVEMENT_DESCRIPTION	ACHIEVEMENT_CREATED_DATE USER_NRIC        
+        $a_id = $alists['ACHIEVEMENT_ID'];
+        $a_name = $alists['ACHIEVEMENT_NAME'];
+        $a_desc = $alists['ACHIEVEMENT_DESCRIPTION'];
+        $a_created = $alists['ACHIEVEMENT_CREATED_DATE'];
+        $a_created_by = $alists['USER_NRIC'];
+
+        $alistcontent = $alistcontent . "<div class='d-flex text-muted pt-3'><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class=''><strong class='text-primary'>" . $a_name . "</strong><br><span>" . $a_desc . "</span></div><span class='d-block text-muted'>Created on " . $a_created . "</span><span></span></div></div>";
+
+    }
+} else {
+    $alistcontent = "There is no achievement yet.";
+}
+
+
+if($currUsergroupcode === "ADM") {
+    $checkCreateable = "<a href='create_achievement.php' class='text-primary' style='text-decoration: none;'>Create Achievement</a>";
 }
 
 
 
-// show 5 recent suggestions
-$detail = $sAPI->getRecentSuggestionsLimitOrder(0, 3, 'DESC');
-if (is_null($detail)) {
-  $recent3 = $recent3 . "There is no recent suggestions available for now.";
-} else {
-  foreach ($detail as $details) {
-    $sId = $details['SUGGESTIONS_ID'];
-    if ($sAPI->checkVP($sId) == false) {
-      $sTitle = $details['SUGGESTIONS_TITLE'];
-      $sDetails = $details['SUGGESTIONS_DETAILS'];
-      $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-      $cCreatedBy = $details['USER_NRIC'];
-      $userUsername = $uAPI->getUserUsername($cCreatedBy);
-      $voteCount = $sAPI->getVote($sId);
-
-      $recent3 = $recent3 . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
-    }
-  }
-}
 
 ?>
+
 <!doctype html>
 <html lang="en">
 
@@ -169,7 +176,7 @@ if (is_null($detail)) {
             <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
             <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
               <li><a class="dropdown-item" href="user_profile.php">Profile</a></li>
-              <li><a class="dropdown-item" href="view_achievement.php">Achievement</a></li>
+              <li><a class="dropdown-item" href="#">Achievement</a></li>
               <li>
                 <hr class="dropdown-divider">
               </li>
@@ -205,18 +212,19 @@ if (is_null($detail)) {
     <?php echo $msgt; ?>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
-      <h6 class="border-bottom pb-2 mb-0">Top 3 Suggestions</h6>
-      <?php echo $top3; ?>
+      <h6 class="border-bottom pb-2 mb-0">Your Achievement</h6>
+      <?php echo $uacontent; ?>
       <small class="d-block text-end mt-3">
-        <a href="top_suggestions.php" class="text-primary" style="text-decoration: none;">See more top suggestions</a>
       </small>
     </div>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
-      <h6 class="border-bottom pb-2 mb-0">Recent Suggestions</h6>
-      <?php echo $recent3; ?>
+        <div class="border-bottom d-flex justify-content-between">
+      <h6 class="pb-2 mb-0">Achievement List</h6>
+      <span><?php echo $checkCreateable; ?></span>
+        </div>
+      <?php echo $alistcontent; ?>
       <small class="d-block text-end mt-3">
-        <a href="recent_suggestions.php" class="text-primary" style="text-decoration: none;">See more recent suggestions</a>
       </small>
     </div>
 

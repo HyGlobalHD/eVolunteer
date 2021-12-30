@@ -5,6 +5,8 @@
 include 'src/db.php';
 include 'src/suggestions.php';
 include 'src/users.php';
+include 'src/group.php';
+include 'src/achievement.php';
 
 // start session
 session_start();
@@ -21,6 +23,8 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
+$gAPI = new group();
+$aAPI = new achievement();
 
 // get session nric
 $currUser = $_SESSION["nric"];
@@ -44,7 +48,7 @@ if (isset($_GET['msgt']) && isset($_GET['msg'])) {
     // get the message type based on the numeric value
 }
 
-$usertopsuggestions = $userrecentsuggestions = "";
+$usertopsuggestions = $userrecentsuggestions = $uacontent = "";
 
 // an option to check get username if set or not
 if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
@@ -95,6 +99,30 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
                         $userrecentsuggestions = $userrecentsuggestions . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
                     }
                 }
+
+                $ualist = $aAPI->getUserAchievement($nric);
+                if (!(is_null($ualist))) {
+                    foreach ($ualist as $ualists) {
+                        // USER_NRIC	ACHIEVEMENT_ID	RECEIVED_DATE -> user_achievement
+                        $a_id = $ualists['ACHIEVEMENT_ID'];
+                        $a_received = $ualists['RECEIVED_DATE'];
+
+                        // ACHIEVEMENT_ID	ACHIEVEMENT_NAME	ACHIEVEMENT_DESCRIPTION	ACHIEVEMENT_CREATED_DATE USER_NRIC        
+                        $adetail = $aAPI->getAchievementDetails($a_id);
+                        if (!(is_null($adetail))) {
+                            foreach ($adetail as $adetails) {
+                                $a_name = $adetails['ACHIEVEMENT_NAME'];
+                                $a_desc = $adetails['ACHIEVEMENT_DESCRIPTION'];
+                                $a_created = $adetails['ACHIEVEMENT_CREATED_DATE'];
+                                $a_created_by = $adetails['USER_NRIC'];
+
+                                $uacontent = $uacontent . "<div class='d-flex text-muted pt-3'><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class=''><strong class='text-primary'>" . $a_name . "</strong><br><span>" . $a_desc . "</span></div><span class='d-block text-muted'>Recieved on " . $a_received . "</span><span></span></div></div>";
+                            }
+                        }
+                    }
+                } else {
+                    $uacontent = "There is no achievement yet.";
+                }
             }
         } else {
             // prompt something wrong happened // bcs the user exist but there was something wrong happened
@@ -119,7 +147,7 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
             $logincount = $userdetails['USER_LOGIN_COUNT'];
             $userstatus = $userdetails['USER_STATUS'];
             $groupcode = $userdetails['GROUP_CODE'];
-            
+
             $utsd = $sAPI->getUserTopSuggestionsLimitOrder($nric, 0, 3, 'DESC');
             if (!(is_null($utsd))) {
                 foreach ($utsd as $utsds) {
@@ -146,18 +174,51 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
                     $userrecentsuggestions = $userrecentsuggestions . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
                 }
             }
+
+            $ualist = $aAPI->getUserAchievement($nric);
+            if (!(is_null($ualist))) {
+                foreach ($ualist as $ualists) {
+                    // USER_NRIC	ACHIEVEMENT_ID	RECEIVED_DATE -> user_achievement
+                    $a_id = $ualists['ACHIEVEMENT_ID'];
+                    $a_received = $ualists['RECEIVED_DATE'];
+
+                    // ACHIEVEMENT_ID	ACHIEVEMENT_NAME	ACHIEVEMENT_DESCRIPTION	ACHIEVEMENT_CREATED_DATE USER_NRIC        
+                    $adetail = $aAPI->getAchievementDetails($a_id);
+                    if (!(is_null($adetail))) {
+                        foreach ($adetail as $adetails) {
+                            $a_name = $adetails['ACHIEVEMENT_NAME'];
+                            $a_desc = $adetails['ACHIEVEMENT_DESCRIPTION'];
+                            $a_created = $adetails['ACHIEVEMENT_CREATED_DATE'];
+                            $a_created_by = $adetails['USER_NRIC'];
+
+                            $uacontent = $uacontent . "<div class='d-flex text-muted pt-3'><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class=''><strong class='text-primary'>" . $a_name . "</strong><br><span>" . $a_desc . "</span></div><span class='d-block text-muted'>Recieved on " . $a_received . "</span><span></span></div></div>";
+                        }
+                    }
+                }
+            } else {
+                $uacontent = "There is no achievement yet.";
+            }
         }
     }
 }
 
 $msgt = $msgt . $sAPI->msgbox(0, "All the listed below are only part of it and not all of it.");
 
-if($uAPI->getUserUsername($currUser) !== $username){
+if ($uAPI->getUserUsername($currUser) !== $username) {
     $msgt = $msgt . $sAPI->msgbox(0, "You are currently viewing other people's profile. <a class='text-primary' style='text-decoration: none;' href='user_profile.php'>Check here to see your own profile.</a>");
 } else {
     $checkEditable = "<a href='edit_user_profile.php' class='text-primary' style='text-decoration: none;'>Edit Profile</a>";
 }
 
+if ($userstatus === "A") {
+    $userstatus = "Active";
+} else if ($userstatus === "I") {
+    $userstatus = "Inactive";
+} else if ($userstatus === "B") {
+    $userstatus = "Banned";
+}
+
+$groupcode = $gAPI->getGroupName($groupcode);
 /**
  * list of sensitive data to omitted from the user profile // for search mostly
  * nric, fullname, email, phoneno
@@ -346,6 +407,7 @@ if($uAPI->getUserUsername($currUser) !== $username){
         </div>
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <h6 class="border-bottom pb-2 mb-0">List of User Achievement:</h6>
+            <?php echo $uacontent; ?>
             <small class="d-block mt-3">
             </small>
         </div>
