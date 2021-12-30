@@ -8,6 +8,7 @@
 include 'src/db.php';
 include 'src/suggestions.php';
 include 'src/users.php';
+include 'src/group.php';
 
 session_start();
 
@@ -15,6 +16,7 @@ session_start();
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
+$gAPI = new group();
 
 $vp_id = $_GET['id'];
 $currentUserId = $_SESSION['nric'];
@@ -155,6 +157,7 @@ function getComment($vp_id, $offsets, $limits)
     $dbAPI = new db();
     $sAPI = new suggestions();
     $uAPI = new users();
+    $gAPI = new group();
     $currentUserId = $_SESSION['nric'];
 
     $commentdetail = $sAPI->getVolunteerCommentLimitOrder($vp_id, $offsets, $limits, 'DESC');
@@ -169,8 +172,11 @@ function getComment($vp_id, $offsets, $limits)
             $pickedBy = $commentdetails['USER_NRIC'];
             $userUsername = $uAPI->getUserUsername($pickedBy);
 
+            $usergroupcode = $uAPI->getUserGroupCode($pickedBy);
+            $groupcode = $gAPI->getGroupName($usergroupcode);
+
             if ($pickedBy == $currentUserId) {
-                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='vp_comment.php?vc_id=$vc_id&sid=$sId'>Change</a></span></div></div></div>";
+                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><span class='badge rounded-pill  bg-primary'>" . $groupcode . "</span><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='vp_comment.php?vc_id=$vc_id&sid=$sId'>Change</a></span></div></div></div>";
                 /*
                 <form class='border-bottom my-3' action='<?php echo htmlspecialchars(".$_SERVER['PHP_SELF'].") . '?id=' . $vp_id; ?>' method='POST'>
                     <div class='form-floating'>
@@ -200,7 +206,7 @@ if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
 } else {
     if ($sAPI->checkPastDateTimeVP($vp_id) || $sAPI->checkOngoingVP($vp_id)) {
         $Participatebtn = "<input type='submit' class='btn btn-success' value='Participate' name='Participatebtn' disabled>";
-        $msgt = $msgt . $sAPI->msgbox(0, "You can't participate in this program because it's past date or ongoing.");
+        $msgt = $msgt . $sAPI->msgbox(0, "You can't participate in this program because it's past date or clashes with ongoing.");
     } else {
         $getAllVP = $sAPI->getUserVPParticipate($currentUserId);
         if ($getAllVP) {
@@ -343,7 +349,7 @@ if ($sAPI->getUserParticipate($currentUserId, $vp_id)) {
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <strong class="text-primary"></strong>
-                <span>Picked by: @<?php echo $contentCreator; ?></span>
+                <span>Picked by: <a class="text-primary" style="text-decoration: none;" href="user_profile.php?username=<?php echo $contentCreator; ?>">@<?php echo $contentCreator; ?></a></span>
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <span class="text-muted">Like the volunteer program?? Participate Now!!</span>

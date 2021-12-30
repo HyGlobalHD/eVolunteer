@@ -6,6 +6,11 @@ include 'src/suggestions.php';
 session_start(); // start the session
 
 // TODO check user already login or nah
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+  // show prompt already login
+  header("location: homepage.php");
+}
+
 
 $msg = "";
 $nric = $username = $password = $fullname = $email = $phoneno = "";

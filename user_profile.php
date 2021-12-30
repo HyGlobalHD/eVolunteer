@@ -37,6 +37,7 @@ $createddate = "";
 $logincount = "";
 $userstatus = "";
 $groupcode = "";
+$checkEditable = "";
 // msgbox
 if (isset($_GET['msgt']) && isset($_GET['msg'])) {
     $msgt = $msgt . $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
@@ -118,8 +119,43 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
             $logincount = $userdetails['USER_LOGIN_COUNT'];
             $userstatus = $userdetails['USER_STATUS'];
             $groupcode = $userdetails['GROUP_CODE'];
+            
+            $utsd = $sAPI->getUserTopSuggestionsLimitOrder($nric, 0, 3, 'DESC');
+            if (!(is_null($utsd))) {
+                foreach ($utsd as $utsds) {
+                    $sId = $utsds['SUGGESTIONS_ID'];
+                    $sTitle = $utsds['SUGGESTIONS_TITLE'];
+                    $sDetails = $utsds['SUGGESTIONS_DETAILS'];
+                    $sCreatedDate = $utsds['SUGGESTIONS_CREATED_DATE'];
+                    $cCreatedBy = $utsds['USER_NRIC'];
+                    $userUsername = $uAPI->getUserUsername($cCreatedBy);
+                    $voteCount = $sAPI->getVote($sId);
+                    $usertopsuggestions = $usertopsuggestions . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+                }
+            }
+            $ursd = $sAPI->getUserRecentSuggestionsLimitOrder($nric, 0, 3, 'DESC');
+            if (!(is_null($ursd))) {
+                foreach ($ursd as $ursds) {
+                    $sId = $ursds['SUGGESTIONS_ID'];
+                    $sTitle = $ursds['SUGGESTIONS_TITLE'];
+                    $sDetails = $ursds['SUGGESTIONS_DETAILS'];
+                    $sCreatedDate = $ursds['SUGGESTIONS_CREATED_DATE'];
+                    $cCreatedBy = $ursds['USER_NRIC'];
+                    $userUsername = $uAPI->getUserUsername($cCreatedBy);
+                    $voteCount = $sAPI->getVote($sId);
+                    $userrecentsuggestions = $userrecentsuggestions . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
+                }
+            }
         }
     }
+}
+
+$msgt = $msgt . $sAPI->msgbox(0, "All the listed below are only part of it and not all of it.");
+
+if($uAPI->getUserUsername($currUser) !== $username){
+    $msgt = $msgt . $sAPI->msgbox(0, "You are currently viewing other people's profile. <a class='text-primary' style='text-decoration: none;' href='user_profile.php'>Check here to see your own profile.</a>");
+} else {
+    $checkEditable = "<a href='edit_user_profile.php' class='text-primary' style='text-decoration: none;'>Edit Profile</a>";
 }
 
 /**
@@ -135,7 +171,7 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
  * 1. the details of the user in a beautiful design layout ( option edit user profile // for current user only // check if the search user is the current user)
  * 2. the list of the user's suggestions
  * 3. the list of the user's suggestions that are choosen to be volunteer program // omiit out for now // for future plan
- * 4. the list of volunteer program that user have participated including the ongoing, upcoming, and past
+ * 4. the list of volunteer program that user have participated including the ongoing, upcoming, and past // for security reason, we don't show the it at all // will considered if user want to see it
  * 5. the list of user achievements
  * 
  */
@@ -289,11 +325,12 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
                 </div>
             </div>
             <small class="d-block text-end mt-3">
+                <?php echo $checkEditable; ?>
             </small>
         </div>
 
         <div class="my-3 p-3 bg-body rounded shadow-sm">
-            <h6 class="border-bottom pb-2 mb-0">List of Suggestions Given</h6>
+            <h6 class="border-bottom pb-2 mb-0">List of Suggestions Given: </h6>
             <small class="d-block mt-3">
                 Top Voted Suggestions:
             </small>
@@ -308,15 +345,8 @@ if (isset($_GET['username']) && strlen(trim($_GET['username'])) > 0) {
         </div>
         </div>
         <div class="my-3 p-3 bg-body rounded shadow-sm">
-            <h6 class="border-bottom pb-2 mb-0">List of Participate on Volunteer Program</h6>
+            <h6 class="border-bottom pb-2 mb-0">List of User Achievement:</h6>
             <small class="d-block mt-3">
-                Upcoming:
-            </small>
-            <small class="d-block mt-3">
-                Ongoing:
-            </small>
-            <small class="d-block  mt-3">
-                History:
             </small>
         </div>
 

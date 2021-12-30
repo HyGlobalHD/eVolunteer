@@ -8,6 +8,7 @@
 include 'src/db.php';
 include 'src/suggestions.php';
 include 'src/users.php';
+include 'src/group.php';
 
 session_start();
 
@@ -15,6 +16,7 @@ session_start();
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
+$gAPI = new group();
 
 $suggestions_id = $_GET['id'];
 $currentUserId = $_SESSION['nric'];
@@ -159,6 +161,7 @@ function getComment($suggestions_id, $offsets, $limits)
     $dbAPI = new db();
     $sAPI = new suggestions();
     $uAPI = new users();
+    $gAPI = new group();
     $currentUserId = $_SESSION['nric'];
 
     $commentdetail = $sAPI->getSuggestionsCommentLimitOrder($suggestions_id, $offsets, $limits, 'DESC');
@@ -173,8 +176,11 @@ function getComment($suggestions_id, $offsets, $limits)
             $cCreatedBy = $commentdetails['USER_NRIC'];
             $userUsername = $uAPI->getUserUsername($cCreatedBy);
 
+            $usergroupcode = $uAPI->getUserGroupCode($cCreatedBy);
+            $groupcode = $gAPI->getGroupName($usergroupcode);
+
             if ($cCreatedBy == $currentUserId) {
-                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='suggestions_comment.php?sc_id=$sc_id&sid=$sId'>Change</a></span></div></div></div>";
+                $commentdata = $commentdata . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><span class='badge rounded-pill  bg-primary'>" . $groupcode . "</span><div class='d-flex justify-content-between'><strong class='text-primary  position-relative'>@" . $userUsername . "</strong><span>" . $cDateTime . "</span></div><div class='d-flex justify-content-between'><span class='text-muted'>" . $cComment . "</span><span><a class='text-primary' style='text-decoration: none;' href='suggestions_comment.php?sc_id=$sc_id&sid=$sId'>Change</a></span></div></div></div>";
                 /*
                 <form class='border-bottom my-3' action='<?php echo htmlspecialchars(".$_SERVER['PHP_SELF'].") . '?id=' . $suggestions_id; ?>' method='POST'>
                     <div class='form-floating'>
@@ -322,7 +328,7 @@ if(($groupcode == "ORG" || $groupcode == "USER") && $sAPI->checkVP($suggestions_
 
             <div class="d-flex justify-content-between text-muted">
                 <strong class="text-primary"></strong>
-                <span>Suggest by: @<?php echo $contentCreator; ?></span>
+                <span>Suggest by: <a class="text-primary" style="text-decoration: none;" href="user_profile.php?username=<?php echo $contentCreator; ?>">@<?php echo $contentCreator; ?></a></span>
             </div>
             <div class="d-flex justify-content-between text-muted">
                 <span class="text-muted">Like the suggestions?? Give a vote!!</span>
