@@ -23,14 +23,42 @@ $uAPI = new users();
 
 $currentUserId = $_SESSION['nric'];
 
-// note: to check currentuser if same user as the create user
-
 $suggestionsdata = "";
 //echo $suggestions_id;
 $searchMSG = $queryResult = "";
+$username = "";
+if(isset($_GET['username']) && strlen(trim($_GET['username'])) > 0){
+    $username = $_GET['username'];
+    $queryResult = searchQuery($username);
+}
+
+$msgt = "";
+if (isset($_GET['msgt']) && isset($_GET['msg'])) {
+  $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
+  // get the message type based on the numeric value
+}
+// note: to check currentuser if same user as the create user
+
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['searchSuggestions'])) {
     $search = $_POST['search'];
+    if(!(is_null($search)) && strlen(trim($search)) > 0){
+        $queryResult = searchQuery($search);
+        if(!(is_null($queryResult))){
+            $msgt = $sAPI->msgbox(1, "Successful search suggestions!!");
+        }else{
+            $msgt = $sAPI->msgbox(0, "There is no suggestion with the search input. Please try another input.");
+        }
+    } else {
+        $msgt = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again. Please make sure the input is there.");
+    }
+}
+
+function searchQuery($search) {
+    $dbAPI = new db();
+    $sAPI = new suggestions();
+    $uAPI = new users();
+    $queryResult = "";
     if (!(is_null($search)) && strlen(trim($search)) > 0) {
         $squery = $sAPI->searchSuggestions($search);
 
@@ -48,9 +76,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['searchSuggestions']))
 
                 $queryResult = $queryResult . "<a href='view_suggestions.php?id=" . $sId . "' class='text-muted' style='text-decoration: none;'><div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex justify-content-between'><strong class='text-primary'>" . $sTitle . "</strong><span>Vote: " . $voteCount . "</span></div><span class='d-block text-muted'>@" . $userUsername . "</span><span>" . $sCreatedDate . "</span></div></div></a>";
             }
+            return $queryResult;
         }
     } else {
-        $searchMSG = "<span class='text-info'>Please make sure your search is not empty</span>";
+        return $queryResult;
     }
 }
 
@@ -138,6 +167,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['searchSuggestions']))
         </div>
     </nav>
 
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
+      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+    </symbol>
+    <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
+      <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
+    </symbol>
+    <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
+      <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+    </symbol>
+  </svg>
+
+
 
     <main class="container">
         <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
@@ -153,7 +195,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['searchSuggestions']))
                 <a href="homepage.php"><button class="btn btn-success">Back</button></a>
             </div>
             <span>
-                <?php echo $searchMSG; ?>
+                <?php echo $msgt; ?>
             </span>
             <br>
 
