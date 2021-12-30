@@ -155,6 +155,19 @@ class users extends db {
             }
         }
     }
+    
+    // get user group_code
+    public function getUserGroupCode($nric) {
+        $data = $this->getUserDetails($nric);
+        if(!(is_null($data))) {
+            foreach ($data as $userdetails) {
+                $username = $userdetails['GROUP_CODE'];
+            }
+            return $username;
+        } else {
+            return null;
+        }
+    }
 
     protected function createUser($nric, $username, $password, $fullname, $email, $phoneno, $logincount, $userstatus, $groupcode) {
         $userExist = $this->checkUserExist($nric);
