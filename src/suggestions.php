@@ -57,6 +57,68 @@ class suggestions extends db
         }
     }
 
+    
+    public function getUserTopSuggestionsLimitOrder($user_nric, $offset, $limit, $order)
+    {
+        $order = strtoupper($order);
+        $sql = "SELECT  suggestions.*, (SELECT  COUNT(*) FROM vote WHERE   vote.SUGGESTIONS_ID = suggestions.SUGGESTIONS_ID) AS voteCount FROM suggestions LEFT JOIN volunteer_program ON suggestions.SUGGESTIONS_ID <> volunteer_program.SUGGESTIONS_ID AND volunteer_program.SUGGESTIONS_ID IS NOT NULL WHERE suggestions.USER_NRIC = ? ORDER BY voteCount " . $order . " LIMIT " . $offset . ", " . $limit;
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $user_nric);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        /*
+        $result = $this->connect()->query($sql);
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        } */
+    }
+
+    
+    public function getUserRecentSuggestionsLimitOrder($user_nric, $offset, $limit, $order) {
+        $order = strtoupper($order);
+        $sql = "select suggestions.* FROM suggestions WHERE suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID FROM volunteer_program WHERE volunteer_program.SUGGESTIONS_ID IS NOT NULL) AND suggestions.USER_NRIC = ? ORDER BY suggestions.SUGGESTIONS_CREATED_DATE " . $order . " LIMIT " . $offset . "," . $limit;
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $user_nric);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        /*
+        $result = $this->connect()->query($sql);
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        } */
+    }
 
     /**
      * @param Integer $limit
@@ -515,6 +577,7 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
     public function searchVolunteerProgram($search)
     {
         // search sql from suggestions table and user table
+
         $sql = "SELECT volunteer_program.*, user.USER_USERNAME FROM volunteer_program LEFT JOIN user ON volunteer_program.USER_NRIC = user.USER_NRIC WHERE volunteer_program.VP_TITLE LIKE '%$search%' OR user.USER_USERNAME LIKE '%$search%'";
         $result = $this->connect()->query($sql);
         if ($result) {
