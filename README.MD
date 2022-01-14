@@ -20,6 +20,9 @@ TODO today:
 - [ ] todo: disabled changes on volunteer program start date/end date, once it started.
 - [ ] todo: only allow use to create/update the start date in about 2/3 day after the current picked date
 
+- [ ] todo: fix delete button not showing confirm popup.
+- [ ] let organizer see the list of the participants.
+- [ ] send notification of program going to start.
 
 
                 $_SESSION["loggedin"] = true;
