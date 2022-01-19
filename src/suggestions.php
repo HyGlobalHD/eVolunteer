@@ -30,6 +30,7 @@ class suggestions extends db
         }
     }
 
+    
     /**
      * @param Integer $limit
      * @param Integer $offset
@@ -44,7 +45,8 @@ class suggestions extends db
          * note to do: remove * query, and list it one by one
          */
         $order = strtoupper($order);
-        $sql = "SELECT  suggestions.*, (SELECT  COUNT(*) FROM vote WHERE   vote.SUGGESTIONS_ID = suggestions.SUGGESTIONS_ID) AS voteCount FROM suggestions LEFT JOIN volunteer_program ON suggestions.SUGGESTIONS_ID <> volunteer_program.SUGGESTIONS_ID AND volunteer_program.SUGGESTIONS_ID IS NOT NULL ORDER BY voteCount " . $order . " LIMIT " . $offset . ", " . $limit;
+        /*$sql = "SELECT  suggestions.*, (SELECT  COUNT(*) FROM vote WHERE   vote.SUGGESTIONS_ID = suggestions.SUGGESTIONS_ID) AS voteCount FROM suggestions LEFT JOIN volunteer_program ON suggestions.SUGGESTIONS_ID <> volunteer_program.SUGGESTIONS_ID AND volunteer_program.SUGGESTIONS_ID IS NOT NULL ORDER BY voteCount " . $order . " LIMIT " . $offset . ", " . $limit; */
+        $sql = "SELECT suggestions.*, (SELECT COUNT(*) FROM vote WHERE suggestions.SUGGESTIONS_ID = vote.SUGGESTIONS_ID) AS VoteCount FROM suggestions WHERE (SELECT COUNT(*) FROM volunteer_program WHERE volunteer_program.SUGGESTIONS_ID = suggestions.SUGGESTIONS_ID) = 0 ORDER BY VoteCount $order LIMIT $offset, $limit";
         $result = $this->connect()->query($sql);
         if ($result) {
             $numRows = $result->num_rows;
@@ -61,7 +63,7 @@ class suggestions extends db
     public function getUserTopSuggestionsLimitOrder($user_nric, $offset, $limit, $order)
     {
         $order = strtoupper($order);
-        $sql = "SELECT  suggestions.*, (SELECT  COUNT(*) FROM vote WHERE   vote.SUGGESTIONS_ID = suggestions.SUGGESTIONS_ID) AS voteCount FROM suggestions LEFT JOIN volunteer_program ON suggestions.SUGGESTIONS_ID <> volunteer_program.SUGGESTIONS_ID AND volunteer_program.SUGGESTIONS_ID IS NOT NULL WHERE suggestions.USER_NRIC = ? ORDER BY voteCount " . $order . " LIMIT " . $offset . ", " . $limit;
+        $sql = "SELECT  suggestions.*, (SELECT  COUNT(*) FROM vote WHERE   vote.SUGGESTIONS_ID = suggestions.SUGGESTIONS_ID) AS voteCount FROM suggestions WHERE suggestions.USER_NRIC = ? AND suggestions.SUGGESTIONS_ID NOT IN (SELECT volunteer_program.SUGGESTIONS_ID FROM volunteer_program WHERE volunteer_program.SUGGESTIONS_ID IS NOT NULL) ORDER BY voteCount $order LIMIT $offset, $limit";
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $user_nric);
@@ -1024,4 +1026,96 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         $stmt->close();
         $conn->close();
     }
+
+    // get all participant data from a volunteer program
+    public function getParticipantList($vp_id) {
+        $sql = "SELECT * FROM participate WHERE VP_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $vp_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        $stmt->close();
+        $conn->close();
+    }
+
+    public function updateParticipateNotified($user_nric, $vp_id)
+    {
+        $update = "UPDATE participate SET PARTICIPATE_NOTIFIED = 1 WHERE USER_NRIC = ? AND VP_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($update);
+        $stmt->bind_param("ss", $user_nric, $vp_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        $conn->close();
+        return $result;
+    }
+
+    // check user vp_id in a participant
+    // check participant vp_id in volunteer program
+    // check volunteer program start date is around current time
+    public function checkUserParticipateVP($user_nric) {
+        $sql = "SELECT VP_ID, PARTICIPATE_NOTIFIED FROM participate WHERE USER_NRIC = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $user_nric);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                if(!(is_null($data))) {
+                    foreach ($data as $row) {
+                        if($row['PARTICIPATE_NOTIFIED'] == 0) {
+                            $vp_id = $row['VP_ID'];
+                            $sql = "SELECT VP_START_DATE FROM volunteer_program WHERE VP_ID = ?";
+                            $conn = $this->connect();
+                            $stmt = $conn->prepare($sql);
+                            $stmt->bind_param("s", $vp_id);
+                            $stmt->execute();
+                            $result = $stmt->get_result();
+                            if ($result) {
+                                $numRows = $result->num_rows;
+                                if ($numRows > 0) {
+                                    while ($row2 =  $result->fetch_array(MYSQLI_ASSOC)) {
+                                        $data2[] = $row2;
+                                    }
+                                    if(!(is_null($data2))) {
+                                        foreach ($data2 as $row2) {
+                                            $start_date = $row2['VP_START_DATE'];
+                                            $start_date = strtotime($start_date);
+                                            $end_date = strtotime("-5 day", strtotime(date("Y-m-d")));
+                                            $current_date = strtotime(date("Y-m-d"));
+                                        }
+                                        if($current_date >= $end_date && $current_date <= $start_date) {
+                                            return $vp_id;
+                                        } else {
+                                            
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            //
+                        }
+                    }
+                }
+            }
+        }
+        $stmt->close();
+        $conn->close();
+    }
+
 }

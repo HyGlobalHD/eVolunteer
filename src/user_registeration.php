@@ -16,4 +16,3 @@ if($fullname !== "AAA") {
     echo 'vvv';
 }
 return true;
-?>
