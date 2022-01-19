@@ -14,9 +14,9 @@ include 'src/achievement.php';
 session_start();
 
 // check whether user already login
-if(isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
   // nric // groupcode
-}else {
+} else {
   header("location: user_login.php?msgt=2&msg=Please login first.");
   exit;
 }
@@ -37,6 +37,11 @@ $msgt = "";
 if (isset($_GET['msgt']) && isset($_GET['msg'])) {
   $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
   // get the message type based on the numeric value
+}
+
+$checkP = $sAPI->checkUserParticipateVP($currUser);
+if (!(is_null($checkP)) && strlen(trim($checkP)) > 0) {
+  $msgt = $sAPI->msgbox(0, "You have a volunteer project that is about to start. Please check your participant status for more information.");
 }
 
 
@@ -90,10 +95,8 @@ if (is_null($detail)) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="">
-  <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
-  <meta name="generator" content="Hugo 0.88.1">
-  <title>Document</title>
+  <link rel='icon' href='favicon.png' type='image/png' />
+  <title>eVolunteer - Homepage</title>
 
   <link href="bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
@@ -170,6 +173,10 @@ if (is_null($detail)) {
             <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
               <li><a class="dropdown-item" href="user_profile.php">Profile</a></li>
               <li><a class="dropdown-item" href="view_achievement.php">Achievement</a></li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li><a class="dropdown-item" href="group_apply.php">Group Application</a></li>
               <li>
                 <hr class="dropdown-divider">
               </li>

@@ -1,94 +1,123 @@
 <?php
-// look at suggestions details
-// get post by suggestion id
-// hence the page will be like view_suggestions.php?id=EXAMPLE
 
-// use $_GET['parametername'];
-
-include 'src/db.php';
-include 'src/suggestions.php';
-include 'src/users.php';
-
+// start session
 session_start();
+// include db.php
+include 'src/db.php';
+// include suggestions.php
+include 'src/suggestions.php';
+// include users.php
+include 'src/users.php';
+// include achievement.php
+include 'src/achievement.php';
+// include group.php
+include 'src/group.php';
 
+// check if user is logged in
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     // nric // groupcode
 } else {
     header("location: user_login.php?msgt=2&msg=Please login first.");
     exit;
 }
+
+// check if user is adm groupcode
+if ($_SESSION["groupcode"] != "ADM") {
+    header("location: homepage.php?msgt=2&msg=You are not allowed to access this page.");
+    exit;
+}
+
+// api
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
-
-$suggestions_id = $_GET['id'];
-$currentUserId = $_SESSION['nric'];
-
-// note: to check currentuser if same user as the create user
-
-$suggestionsdata = "";
-//echo $suggestions_id;
-$suggestionssectionMSG = "";
-
+$aAPI = new achievement();
+$gAPI = new group();
 
 $msgt = "";
-if (isset($_GET['msgt']) && isset($_GET['msg'])) {
-    $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
-    // get the message type based on the numeric value
-}
+$errmsg = "";
 
-$checkerS = $sAPI->checkSuggestionExist($suggestions_id);
-if ($checkerS == false || is_null($checkerS)) {
-    header('Location: homepage.php');
-}
+// current user
+$currUser = $_SESSION["nric"];
 
+// get user nric from $_GET
+$nric = $_GET['nric'];
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['updateSuggestions'])) {
-    $suggestionsgiven = $_POST['suggestions'];
-    $suggestionstitlegiven = $_POST['suggestionstitle'];
-    if (!(is_null($suggestionsgiven)) && strlen(trim($suggestionsgiven)) > 0 && !(is_null($suggestionstitlegiven)) && strlen(trim($suggestionstitlegiven)) > 0) {
-        if ($sAPI->updateSuggestions($suggestions_id, $suggestionstitlegiven, $suggestionsgiven)) {
-            $suggestionssectionMSG = $sAPI->msgbox(1, "Successful update the suggestions!!");
-        } else {
-            $suggestionssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
-        }
-    } else {
-        $suggestionssectionMSG = $sAPI->msgbox(2, "Please make sure all the fields input is there");
+$app_user_nric = "";
+$app_group_code = "";
+$app_date = "";
+$app_status = "";
+$app_accept_by = "";
+
+// get group application by $nric
+$appdata = $gAPI->getGroupApplication($nric);
+if (!(is_null($appdata))) {
+    foreach ($appdata as $appdatas) {
+        $app_user_nric = $appdatas['USER_NRIC'];
+        $app_group_code = $appdatas['GROUP_CODE'];
+        $app_date = $appdatas['APP_DATE'];
+        $app_status = $appdatas['APP_STATUS'];
+        $app_accept_by = $appdatas['APP_ACCEPT_BY'];
+
+        $app_user_name = $uAPI->getUserUsername($app_user_nric);
+        $gname = $gAPI->getGroupName($app_group_code);
     }
-}
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['deleteSuggestions'])) {
-    $tmpsid = $_POST['tmpsid'];
-    if ($sAPI->deleteSuggestions($tmpsid)) {
-        //$suggestionssectionMSG = "<script type='text/javascript'>alert('Delete Successful!');window.location.href = 'homepage.php';</script>";
-        header('Location: homepage.php?msgt=1&msg=Delete the suggestions Successful!');
-        exit;
-    } else {
-        $suggestionssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
-    }
-}
-
-$detail = $sAPI->getSuggestionsDetails($suggestions_id);
-if (!(is_null($detail))) {
-    foreach ($detail as $details) {
-        $sID = $details['SUGGESTIONS_ID'];
-        $sDetails = $details['SUGGESTIONS_DETAILS'];
-        $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-        $cCreatedBy = $details['USER_NRIC'];
-        $userUsername = $uAPI->getUserUsername($cCreatedBy);
-
-        $suggestionsdatav2 = array('suggestionsdetails' => $sDetails);
-        $suggestionstitlev2 = array('suggestionstitle' => $details['SUGGESTIONS_TITLE']);
-        $suggestionsdata = $sDetails;
-    }
-}
-
-$dlbtn = "";
-if ($sAPI->checkVP($suggestions_id)) {
-    $dlbtn = "<input type='submit' name='deleteSuggestions' value='delete' class='btn btn-danger' onclick='return confirm('Are you sure you want to delete the suggestions?')' disabled>";
-    $msgt = $msgt . $sAPI->msgbox(0, "You cannot delete the suggestions because it was selected as a volunteer program.");
 } else {
-    $dlbtn = "<input type='submit' name='deleteSuggestions' value='delete' class='btn btn-danger' onclick='return confirm('Are you sure you want to delete the suggestions?')'>";
+    $errmsg = "No application found.";
 }
+// editable data:
+// status
+
+if (isset($_POST["updateUserApp"])) {
+    $post_status = $_POST["appstatus"];
+
+    if ($post_status == "P") {
+        $msgt = $msgt . $sAPI->msgbox(3, "Please select a status.");
+    } else {
+        if ($gAPI->updateGroupApplication($nric, $app_group_code, $post_status, $currUser)) {
+            $msgt = $msgt . $sAPI->msgbox(1, "Successfully updated application.");
+
+            if ($post_status == "R") {
+                // do nothing
+            } else if ($post_status == "A") {
+                if ($gAPI->updateUserGroup($nric, $app_group_code)) {
+                    $msgt = $msgt . $sAPI->msgbox(1, "Successfully updated user group.");
+                } else {
+                    $msgt = $msgt . $sAPI->msgbox(2, "Failed to update user group.");
+                }
+            }
+        } else {
+            $msgt = $msgt . $sAPI->msgbox(2, "Failed to update application.");
+        }
+    }
+}
+if (isset($_POST["deleteUserApp"])) {
+    if ($gAPI->deleteGroupApplication($nric)) {
+        $msgt = $msgt . $sAPI->msgbox(1, "Successfully deleted application.");
+    } else {
+        $msgt = $msgt . $sAPI->msgbox(2, "Failed to delete application.");
+    }
+}
+// get group application by $nric
+$appdata = $gAPI->getGroupApplication($nric);
+if (!(is_null($appdata))) {
+    foreach ($appdata as $appdatas) {
+        $app_user_nric = $appdatas['USER_NRIC'];
+        $app_group_code = $appdatas['GROUP_CODE'];
+        $app_date = $appdatas['APP_DATE'];
+        $app_status = $appdatas['APP_STATUS'];
+        $app_accept_by = $appdatas['APP_ACCEPT_BY'];
+
+        $app_user_name = $uAPI->getUserUsername($app_user_nric);
+        $gname = $gAPI->getGroupName($app_group_code);
+    }
+} else {
+    $errmsg = "No application found.";
+}
+
+
+
+
 ?>
 
 <!doctype html>
@@ -98,7 +127,7 @@ if ($sAPI->checkVP($suggestions_id)) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel='icon' href='favicon.png' type='image/png' />
-    <title>eVolunteer - Edit Suggestions</title>
+    <title>eVolunteer - Group Application</title>
 
     <link href="bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
@@ -140,7 +169,7 @@ if ($sAPI->checkVP($suggestions_id)) {
                         <a class="nav-link" aria-current="page" href="homepage.php">Homepage</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Suggestions</a>
+                        <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Suggestions</a>
                         <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
                             <li><a class="dropdown-item" href="top_suggestions.php">Top Suggestions</a></li>
                             <li>
@@ -171,14 +200,14 @@ if ($sAPI->checkVP($suggestions_id)) {
                         <a class="nav-link" href="participant_status.php">Participation Status</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
+                        <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
                         <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
                             <li><a class="dropdown-item" href="user_profile.php">Profile</a></li>
                             <li><a class="dropdown-item" href="view_achievement.php">Achievement</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li><a class="dropdown-item" href="group_apply.php">Group Application</a></li>
+                            <li><a class="dropdown-item active" href="group_apply.php">Group Application</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
@@ -206,7 +235,7 @@ if ($sAPI->checkVP($suggestions_id)) {
         <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
             <div class="lh-1">
                 <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-                <small>Suggestions</small>
+                <small>Group Application</small>
             </div>
         </div>
 
@@ -214,37 +243,85 @@ if ($sAPI->checkVP($suggestions_id)) {
 
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <div class="d-flex justify-content-between border-bottom">
-                <h6 class="pb-2 mb-0">Edit Suggestions</h6>
-                <a href="view_suggestions.php?id=<?php echo $sID; ?>"><button class="btn btn-success">Back</button></a>
+                <h6 class="pb-2 mb-0">Edit User Group Application</h6>
+                <a href="group_application_list.php"><button class="btn btn-success">Back</button></a>
             </div>
             <span>
-                <?php echo $suggestionssectionMSG; ?>
+                <?php echo $errmsg; ?>
             </span>
             <br>
 
-            <form class="my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
+            <form class="my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?nric=" . $nric; ?>" method="POST">
+                <span>Note: After Update to Accept/Reject, you can't change it back.</span><br>
+                <span>If Accept, the user will automatically changed to the requested group.</span>
+                <p></p>
+
                 <div class="form-floating">
-                    <input type="text" class="form-control" id="suggestionstitleID" name="suggestionstitle" placeholder="your suggestions title" autocomplete="off" maxlength="280" required>
-                    <label for="suggestionstitleID">Your suggestions title...</label>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Username" disabled>
+                    <label for="username">Requester Username:</label>
                 </div>
+
                 <div class="form-floating">
-                    <textarea class="form-control form-outline rounded-0" id="suggestionsID" name="suggestions" placeholder="your suggestions" autocomplete="off" rows="30" cols="80" onclick="checkLen(this.value)" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)" tabindex="3" data-type="CHAR" aria-invalid="false" style="height: 100%;" required></textarea>
-                    <label for="suggestionsID">Your suggestions...<span id="counterDisplay"></span></label>
+                    <input type="text" class="form-control" id="requestgroup" name="requestgroup" placeholder="Requested Group" disabled>
+                    <label for="requestgroup">Requested Group:</label>
                 </div>
-                <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
-                <div class="d-flex justify-content-between">
-                    <strong class="text-primary"></strong>
-                    <span>
-                        <input type="submit" name="updateSuggestions" value="update" class="btn btn-primary" id="suggestionsBtn" disabled>
-                    </span>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="requestdate" value="<?php echo $app_date; ?>" name="requestdate" placeholder="Requested Date" disabled>
+                    <label for="requestdate">Requested Date: </label>
                 </div>
-            </form>
-            <form class="border-bottom" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST" id="deleteForm" onsubmit="return confirm('Are you sure you want to delete the suggestions?');">
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="appacceptby" name="appacceptby" placeholder="Application Accepted By" disabled>
+                    <label for="appacceptby">Application Accepted By</label>
+                </div>
+
+                <div class="form-floating">
+                    <select class="form-control" id="appstatus" name="appstatus" required>
+                        <?php
+
+                        $appstatuslist = array("P", "A", "R");
+
+                        foreach ($appstatuslist as $appstatuslists) {
+                            if ($appstatuslists == "P") {
+                                $appname = "Pending";
+                            } else if ($appstatuslists == "A") {
+                                $appname = "Accept";
+                            } else if ($appstatuslists == "R") {
+                                $appname = "Reject";
+                            }
+
+                            if ($app_status == "P") {
+                                if ($appstatuslists == $app_status) {
+                                    echo "<option value='$appstatuslists' selected>$appname</option>";
+                                } else {
+                                    echo "<option value='$appstatuslists'>$appname</option>";
+                                }
+                            } else {
+                                if ($appstatuslists == $app_status) {
+                                    echo "<option value='$appstatuslists' selected>$appname</option>";
+                                }
+                            }
+                        }
+                        ?>
+                    </select>
+                    <label for="appstatus">Application Status</label>
+                </div>
 
                 <div class="d-flex justify-content-between">
                     <strong class="text-primary"></strong>
                     <span>
-                        <?php echo $dlbtn; ?>
+                        <input type="submit" name="updateUserApp" value="Update" class="btn btn-primary" id="updateUserApp">
+                    </span>
+
+                </div>
+            </form>
+
+            <form class="border-bottom" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $vp_id; ?>" method="POST" id="deleteForm" onsubmit="return confirm('Are you sure you want to delete the group application?');">
+                <div class="d-flex justify-content-between">
+                    <strong class="text-primary"></strong>
+                    <span>
+                        <input type="submit" name="deleteUserApp" value="Delete" class="btn btn-danger" id="deleteUserApp">
                     </span>
                 </div>
             </form>
@@ -263,19 +340,14 @@ if ($sAPI->checkVP($suggestions_id)) {
     </div>
     <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script type="text/javascript">
-        function checkLen(val) {
-            if (val.length > 0) {
-                document.getElementById('counterDisplay').innerHTML = '(' + val.length + ' / 280)';
-                document.getElementById('suggestionsBtn').disabled = false;
-            } else {
-                document.getElementById('counterDisplay').innerHTML = '';
-                document.getElementById('suggestionsBtn').disabled = true;
-            }
-        }
-        let sdtv2 = <?php echo json_encode($suggestionstitlev2); ?>;
-        document.getElementById('suggestionstitleID').value = sdtv2.suggestionstitle;
-        let sdv2 = <?php echo json_encode($suggestionsdatav2); ?>;
-        document.getElementById('suggestionsID').value = sdv2.suggestionsdetails;
+        let username = <?php echo json_encode($app_user_name) ?>;
+        document.getElementById("username").value = username;
+
+        let requestgroup = <?php echo json_encode($gname) ?>;
+        document.getElementById("requestgroup").value = requestgroup;
+
+        let appacceptby = <?php echo json_encode($app_accept_by) ?>;
+        document.getElementById("appacceptby").value = appacceptby;
     </script>
     <script src="js/offcanvas.js"></script>
 </body>

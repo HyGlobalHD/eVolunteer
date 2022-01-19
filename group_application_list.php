@@ -1,17 +1,19 @@
 <?php
-// look at achievement details
-// get post by suggestion id
-// hence the page will be like view_achievement.php?id=EXAMPLE
-
-// use $_GET['parametername'];
-
-include 'src/db.php';
-include 'src/suggestions.php';
-include 'src/users.php';
-include 'src/achievement.php';
 
 session_start();
 
+// include db.php
+include 'src/db.php';
+// include suggestions.php
+include 'src/suggestions.php';
+// include users.php
+include 'src/users.php';
+// include achievement.php
+include 'src/achievement.php';
+// include group.php
+include 'src/group.php';
+
+// check if user is logged in
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
   // nric // groupcode
 } else {
@@ -19,7 +21,8 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
   exit;
 }
 
-if ($_SESSION['groupcode'] !== "ADM") {
+// check if user is adm groupcode
+if ($_SESSION["groupcode"] != "ADM") {
   header("location: homepage.php?msgt=2&msg=You are not allowed to access this page.");
   exit;
 }
@@ -27,38 +30,86 @@ if ($_SESSION['groupcode'] !== "ADM") {
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
-$aAPI = new achievement();
+$gAPI = new group();
 
-$currentUserId = $_SESSION['nric'];
-$currUsergroupcode = $_SESSION['groupcode'];
-// note: to check currentuser if same user as the create user
+// list all the application based on the timestamp asc and status pending
+// have three button: accept, reject and delete
+// maximum 20 application per page
 
-// ACHIEVEMENT_ID	ACHIEVEMENT_NAME	ACHIEVEMENT_DESCRIPTION	ACHIEVEMENT_CREATED_DATE USER_NRIC
 
-$achievementdata = "";
-//echo $achievement_id;
-$achievementsectionMSG = "";
+$pagesOption = ""; // pages numbering
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createachievement'])) {
-  $achievementid = $_POST['achievementid'];
-  $achievementname = $_POST['achievementname'];
-  $achievementdesc = $_POST['achievementdesc'];
-  if (!(is_null($achievementname)) && strlen(trim($achievementname)) > 0 && !(is_null($achievementdesc)) && strlen(trim($achievementdesc)) > 0 && !(is_null($achievementid)) && strlen(trim($achievementid)) > 0) {
-    //$tmpsid = $sAPI->createachievement($achievementdesc, $achievementname, $currentUserId);
-    if ($aAPI->createAchievement($achievementid, $achievementname, $achievementdesc, $currentUserId)) {
-      //$achievementsectionMSG = "<span class='text-success'>Successful create achievement!!</span>";
-      //$achievementsectionMSG = "<script type='text/javascript'>alert('Successful create achievement!!');window.location.href = 'view_achievement.php?id=$tmpsid';</script>";
-      header("location: view_achievement.php?msgt=1&msg=Successful create achievement!!");
-      exit;
-    } else {
-      $achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
-    }
-  } else {
-    $achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again. Please make sure the input is there.");
+// settings:
+$offset = 0; //note: offset must start with 0
+$limit = 20; // can be changed // default: 10
+$offsetSettings = 20; // can be change // default:10 // use for increase offset per pages
+// how many pages
+$totalPages = ceil($gAPI->getGroupAppCount() / $offsetSettings); // eg: 2 / 10 = 0.2 = 1 pages total
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $currPage = $_POST['pages']; // must be numbering
+  for ($i = 1; $i < intval($currPage); $i++) { // i = 0; i < 1; i++ = $offset = 0 + 10;
+    $offset = $offset + $offsetSettings;
   }
+  // display results
+  $applist = getapplistPost($offset, $limit);
+} else {
+  // default
+  $currPage = 1;
+  $applist = getapplistPost($offset, $limit);
+}
+$pagesOption = getPages($currPage, $totalPages);
+
+
+function getPages($currPage, $totalPages)
+{ // return string
+  $result = "";
+  for ($i = 1; $i <= $totalPages; $i++) {
+    if ($i == intval($currPage)) {
+      $result = $result . "<option value='$i' selected>$i</option>";
+    } else {
+      $result = $result . "<option value='$i'>$i</option>";
+    }
+  }
+  return $result;
 }
 
-$achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(0, "Please take note that you have to contact the developers to make the achievement obtainable to the users.");
+function getapplistPost($offsets, $limits)
+{
+  $applist = "";
+  $dbAPI = new db();
+  $sAPI = new suggestions();
+  $uAPI = new users();
+  $gAPI = new group();
+  $detail = $gAPI->getGroupApplicationOrderLimit($offsets, $limits, 'DESC');
+  if (is_null($detail)) {
+    $applist = $applist . "There is no group application list available for now.";
+  } else {
+    foreach ($detail as $details) {
+      $app_user_nric = $details['USER_NRIC'];
+      $app_group_code = $details['GROUP_CODE'];
+      $app_date = $details['APP_DATE'];
+      $app_status = $details['APP_STATUS'];
+      $app_accept_by = $details['APP_ACCEPT_BY'];
+
+      $app_user_name = $uAPI->getUserUsername($app_user_nric);
+
+      if ($app_status == "P") {
+        $app_status = "Pending";
+      } else if ($app_status == "A") {
+        $app_status = "Accepted";
+      } else if ($app_status == "R") {
+        $app_status = "Rejected";
+      }
+      $gname = $gAPI->getGroupName($app_group_code);
+
+
+      $applist = $applist . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex'><strong class='text-primary  position-relative'><span class='text-dark'>Requester: </span><a href='user_profile.php?username=$app_user_name' style='text-decoration: none;'>@" . $app_user_name . "</a></strong></div><span class='text-dark'>Application date: " . $app_date . "</span><div class='d-flex'><span class='text-dark'>Requested Group: " . $gname . "</span></div><span class='text-dark'>Requested Status: " . $app_status . "</span><br><span class='text-dark'>Accept by: $app_accept_by</span><br><a href='group_application_edit.php?nric=$app_user_nric' style='text-decoration: none;'>Edit User Application</a></div></div>";
+    }
+  }
+  return $applist;
+}
+
 
 ?>
 
@@ -69,7 +120,7 @@ $achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(0, "Please take 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel='icon' href='favicon.png' type='image/png' />
-  <title>eVolunteer - New Achievement</title>
+  <title>eVolunteer - Group Application</title>
 
   <link href="bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
@@ -145,11 +196,11 @@ $achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(0, "Please take 
             <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
             <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
               <li><a class="dropdown-item" href="user_profile.php">Profile</a></li>
-              <li><a class="dropdown-item active" href="view_achievement.php">Achievement</a></li>
+              <li><a class="dropdown-item" href="view_achievement.php">Achievement</a></li>
               <li>
                 <hr class="dropdown-divider">
               </li>
-              <li><a class="dropdown-item" href="group_apply.php">Group Application</a></li>
+              <li><a class="dropdown-item active" href="group_apply.php">Group Application</a></li>
               <li>
                 <hr class="dropdown-divider">
               </li>
@@ -161,58 +212,36 @@ $achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(0, "Please take 
     </div>
   </nav>
 
-  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-    <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
-      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
-    </symbol>
-    <symbol id="info-fill" fill="currentColor" viewBox="0 0 16 16">
-      <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" />
-    </symbol>
-    <symbol id="exclamation-triangle-fill" fill="currentColor" viewBox="0 0 16 16">
-      <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
-    </symbol>
-  </svg>
 
   <main class="container">
     <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
       <div class="lh-1">
         <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-        <small>Achievement</small>
+        <small>Group Application</small>
       </div>
     </div>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
-      <div class="d-flex justify-content-between border-bottom">
-        <h6 class="pb-2 mb-0">Create Achievement</h6>
-        <a href="view_achievement.php"><button class="btn btn-success">Back</button></a>
-      </div>
-      <span>
-        <?php echo $achievementsectionMSG; ?>
-      </span>
-      <br>
-
-      <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
-        <div class="form-floating">
-          <input type="text" class="form-control" id="achievementidID" name="achievementid" placeholder="your achievement id" autocomplete="off" maxlength="15" required>
-          <label for="achievementidID">Achievement ID</label>
-        </div>
-        <div class="form-floating">
-          <input type="text" class="form-control" id="achievementnameID" name="achievementname" placeholder="your achievement name" autocomplete="off" maxlength="50" required>
-          <label for="achievementnameID">Achievement Name</label>
-        </div>
-        <div class="form-floating">
-          <input type="text" class="form-control" id="achievementdescID" name="achievementdesc" placeholder="your achievement desc" autocomplete="off" maxlength="150" required>
-          <label for="achievementdescID">Achievement Description</label>
-        </div>
-        <input name="tmpsid" type="hidden" value="<?php echo $achievement_id; ?>">
-        <div class="d-flex justify-content-between">
-          <strong class="text-primary"></strong>
-          <span>
-            <input type="submit" name="createachievement" value="create" class="btn btn-primary" id="achievementBtn">
-          </span>
-        </div>
-      </form>
-      <div class="border-bottom my-3"></div>
+      <small class="d-block text-end mt-3">
+        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
+          <label for="pages">Pages:</label>
+          <select name="pages" id="pages">
+            <?php echo $pagesOption; ?>
+          </select>
+          <input type="submit" class="btn-primary" value="Go">
+        </form>
+      </small>
+      <h6 class="border-bottom pb-2 mb-0">Group Application List</h6>
+      <?php echo $applist; ?>
+      <small class="d-block text-center mt-3">
+        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
+          <label for="pages">Pages:</label>
+          <select name="pages" id="pages">
+            <?php echo $pagesOption; ?>
+          </select>
+          <input type="submit" class="btn-primary" value="Go">
+        </form>
+      </small>
     </div>
 
     <div class="text-center">
@@ -225,6 +254,7 @@ $achievementsectionMSG = $achievementsectionMSG . $sAPI->msgbox(0, "Please take 
       <p class="col-md-4 mb-0 text-muted">&copy; 2021 eVolunteer</p>
     </footer>
   </div>
+
   <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
   <script src="js/offcanvas.js"></script>

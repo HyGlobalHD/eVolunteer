@@ -1,94 +1,133 @@
 <?php
-// look at suggestions details
-// get post by suggestion id
-// hence the page will be like view_suggestions.php?id=EXAMPLE
 
-// use $_GET['parametername'];
-
-include 'src/db.php';
-include 'src/suggestions.php';
-include 'src/users.php';
-
+// start session
 session_start();
+// include db.php
+include 'src/db.php';
+// include suggestions.php
+include 'src/suggestions.php';
+// include users.php
+include 'src/users.php';
+// include achievement.php
+include 'src/achievement.php';
 
+// check if user is logged in
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     // nric // groupcode
 } else {
     header("location: user_login.php?msgt=2&msg=Please login first.");
     exit;
 }
+
+// api
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
-
-$suggestions_id = $_GET['id'];
-$currentUserId = $_SESSION['nric'];
-
-// note: to check currentuser if same user as the create user
-
-$suggestionsdata = "";
-//echo $suggestions_id;
-$suggestionssectionMSG = "";
-
+$aAPI = new achievement();
 
 $msgt = "";
-if (isset($_GET['msgt']) && isset($_GET['msg'])) {
-    $msgt = $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
-    // get the message type based on the numeric value
+$errmsg = "";
+
+
+// shows info that non-editable
+// user full name
+// username
+// nric
+$fullname = "";
+$username = "";
+$nric = $_SESSION["nric"];
+
+// things that user can edit:
+// 1. email
+// 2. phone number
+// 3. password
+$email = "";
+$phone = "";
+// first retrieve user info
+$userInfo = $uAPI->getUserDetails($nric);
+if (!(is_null($userInfo))) {
+    foreach ($userInfo as $row) {
+        $fullname = $row["USER_FULL_NAME"];
+        $username = $row["USER_USERNAME"];
+        $email = $row["USER_EMAIL"];
+        $phone = $row["USER_PHONE_NO"];
+    }
 }
 
-$checkerS = $sAPI->checkSuggestionExist($suggestions_id);
-if ($checkerS == false || is_null($checkerS)) {
-    header('Location: homepage.php');
-}
+// so to allow update for changes
+// first check if the email is not empty and not the same as before
+// if above is true then upadate email
+// second check if phone number is not empty and not the same as before
+// if above is true then update phone number
+// third check if password is not empty and not the same as before
+// if above is true then update password
+
+// for password we have password confirmation such as old pass new pass comfirm new pass
+// that is the validation requirement for password changing
 
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['updateSuggestions'])) {
-    $suggestionsgiven = $_POST['suggestions'];
-    $suggestionstitlegiven = $_POST['suggestionstitle'];
-    if (!(is_null($suggestionsgiven)) && strlen(trim($suggestionsgiven)) > 0 && !(is_null($suggestionstitlegiven)) && strlen(trim($suggestionstitlegiven)) > 0) {
-        if ($sAPI->updateSuggestions($suggestions_id, $suggestionstitlegiven, $suggestionsgiven)) {
-            $suggestionssectionMSG = $sAPI->msgbox(1, "Successful update the suggestions!!");
+// if user click update button updateUserProfileBtn
+if (isset($_POST["updateUserProfileBtn"])) {
+    // check if email is not empty and not the same as before
+    if (!empty($_POST["email"]) && $_POST["email"] != $email) {
+        // update email
+        $email = $_POST["email"];
+        // check if email is already been used.
+        if ($uAPI->checkEmailExist($email)) {
+            $errmsg = $errmsg . $sAPI->msgbox(2, "Email already been used. Try use another email.");
         } else {
-            $suggestionssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+            // update email
+            if ($uAPI->updateEmail($nric, $email)) {
+                $msgt = $msgt . $sAPI->msgbox(1, "Email updated successfully.");
+            }
         }
-    } else {
-        $suggestionssectionMSG = $sAPI->msgbox(2, "Please make sure all the fields input is there");
     }
-}
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['deleteSuggestions'])) {
-    $tmpsid = $_POST['tmpsid'];
-    if ($sAPI->deleteSuggestions($tmpsid)) {
-        //$suggestionssectionMSG = "<script type='text/javascript'>alert('Delete Successful!');window.location.href = 'homepage.php';</script>";
-        header('Location: homepage.php?msgt=1&msg=Delete the suggestions Successful!');
-        exit;
-    } else {
-        $suggestionssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+    // check if phone number is not empty and not the same as before
+    if (!empty($_POST["phone"]) && $_POST["phone"] != $phone) {
+        // update phone number
+        $phone = $_POST["phone"];
+        // check if phone number is already been used.
+        if ($uAPI->checkPhoneExist($phone)) {
+            $errmsg = $errmsg . $sAPI->msgbox(2, "Phone number already been used. Try use another phone number.");
+        } else {
+            // update phone number
+            if ($uAPI->updatePhoneNo($nric, $phone)) {
+                $msgt = $msgt . $sAPI->msgbox(1, "Phone number updated successfully.");
+            }
+        }
+    }
+    // check if password is not empty and not the same as before
+    if (!empty($_POST["oldpassword"]) && !empty($_POST["newpassword"]) && !empty($_POST["confirmpassword"])) {
+        // update password
+
+        // check if old password is correct
+        if ($uAPI->checkPassword($nric, $_POST["oldpassword"])) {
+            // check if new password is the same as confirm password
+            if ($_POST["newpassword"] == $_POST["confirmpassword"]) {
+                // update password
+                if ($uAPI->updatePassword($nric, $_POST["newpassword"])) {
+                    $msgt = $msgt . $sAPI->msgbox(1, "Password updated successfully.");
+                }
+            } else {
+                $msgt = $msgt . $sAPI->msgbox(2, "New password and confirm password are not the same.");
+            }
+        } else {
+            $msgt = $msgt . $sAPI->msgbox(2, "Old password is not correct.");
+        }
     }
 }
 
-$detail = $sAPI->getSuggestionsDetails($suggestions_id);
-if (!(is_null($detail))) {
-    foreach ($detail as $details) {
-        $sID = $details['SUGGESTIONS_ID'];
-        $sDetails = $details['SUGGESTIONS_DETAILS'];
-        $sCreatedDate = $details['SUGGESTIONS_CREATED_DATE'];
-        $cCreatedBy = $details['USER_NRIC'];
-        $userUsername = $uAPI->getUserUsername($cCreatedBy);
 
-        $suggestionsdatav2 = array('suggestionsdetails' => $sDetails);
-        $suggestionstitlev2 = array('suggestionstitle' => $details['SUGGESTIONS_TITLE']);
-        $suggestionsdata = $sDetails;
+$userInfo = $uAPI->getUserDetails($nric);
+if (!(is_null($userInfo))) {
+    foreach ($userInfo as $row) {
+        $fullname = $row["USER_FULL_NAME"];
+        $username = $row["USER_USERNAME"];
+        $email = $row["USER_EMAIL"];
+        $phone = $row["USER_PHONE_NO"];
     }
 }
 
-$dlbtn = "";
-if ($sAPI->checkVP($suggestions_id)) {
-    $dlbtn = "<input type='submit' name='deleteSuggestions' value='delete' class='btn btn-danger' onclick='return confirm('Are you sure you want to delete the suggestions?')' disabled>";
-    $msgt = $msgt . $sAPI->msgbox(0, "You cannot delete the suggestions because it was selected as a volunteer program.");
-} else {
-    $dlbtn = "<input type='submit' name='deleteSuggestions' value='delete' class='btn btn-danger' onclick='return confirm('Are you sure you want to delete the suggestions?')'>";
-}
 ?>
 
 <!doctype html>
@@ -98,7 +137,7 @@ if ($sAPI->checkVP($suggestions_id)) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel='icon' href='favicon.png' type='image/png' />
-    <title>eVolunteer - Edit Suggestions</title>
+    <title>eVolunteer - Update User Profile</title>
 
     <link href="bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
@@ -140,7 +179,7 @@ if ($sAPI->checkVP($suggestions_id)) {
                         <a class="nav-link" aria-current="page" href="homepage.php">Homepage</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Suggestions</a>
+                        <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Suggestions</a>
                         <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
                             <li><a class="dropdown-item" href="top_suggestions.php">Top Suggestions</a></li>
                             <li>
@@ -171,9 +210,9 @@ if ($sAPI->checkVP($suggestions_id)) {
                         <a class="nav-link" href="participant_status.php">Participation Status</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
+                        <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
                         <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
-                            <li><a class="dropdown-item" href="user_profile.php">Profile</a></li>
+                            <li><a class="dropdown-item active" href="user_profile.php">Profile</a></li>
                             <li><a class="dropdown-item" href="view_achievement.php">Achievement</a></li>
                             <li>
                                 <hr class="dropdown-divider">
@@ -206,7 +245,7 @@ if ($sAPI->checkVP($suggestions_id)) {
         <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
             <div class="lh-1">
                 <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-                <small>Suggestions</small>
+                <small>User Profile</small>
             </div>
         </div>
 
@@ -214,37 +253,60 @@ if ($sAPI->checkVP($suggestions_id)) {
 
         <div class="my-3 p-3 bg-body rounded shadow-sm">
             <div class="d-flex justify-content-between border-bottom">
-                <h6 class="pb-2 mb-0">Edit Suggestions</h6>
-                <a href="view_suggestions.php?id=<?php echo $sID; ?>"><button class="btn btn-success">Back</button></a>
+                <h6 class="pb-2 mb-0">Edit User Profile</h6>
+                <a href="user_profile.php"><button class="btn btn-success">Back</button></a>
             </div>
             <span>
-                <?php echo $suggestionssectionMSG; ?>
+                <?php echo $errmsg; ?>
             </span>
             <br>
 
-            <form class="my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST">
+            <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
+
                 <div class="form-floating">
-                    <input type="text" class="form-control" id="suggestionstitleID" name="suggestionstitle" placeholder="your suggestions title" autocomplete="off" maxlength="280" required>
-                    <label for="suggestionstitleID">Your suggestions title...</label>
+                    <input type="text" class="form-control" id="fullname" name="fullname" placeholder="Full Name" disabled>
+                    <label for="fullname">Full Name</label>
                 </div>
+
                 <div class="form-floating">
-                    <textarea class="form-control form-outline rounded-0" id="suggestionsID" name="suggestions" placeholder="your suggestions" autocomplete="off" rows="30" cols="80" onclick="checkLen(this.value)" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)" tabindex="3" data-type="CHAR" aria-invalid="false" style="height: 100%;" required></textarea>
-                    <label for="suggestionsID">Your suggestions...<span id="counterDisplay"></span></label>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Username" disabled>
+                    <label for="username">Username</label>
                 </div>
-                <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
-                <div class="d-flex justify-content-between">
-                    <strong class="text-primary"></strong>
-                    <span>
-                        <input type="submit" name="updateSuggestions" value="update" class="btn btn-primary" id="suggestionsBtn" disabled>
-                    </span>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="nric" name="nric" placeholder="nric" disabled>
+                    <label for="nric">NRIC</label>
                 </div>
-            </form>
-            <form class="border-bottom" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . "?id=" . $suggestions_id; ?>" method="POST" id="deleteForm" onsubmit="return confirm('Are you sure you want to delete the suggestions?');">
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="email" name="email" placeholder="Email">
+                    <label for="email">Email</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control" id="phone" name="phone" placeholder="Phone Number">
+                    <label for="phone">Phone Number</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="oldpassword" name="oldpassword" placeholder="Old Password">
+                    <label for="oldpassword">Old Password</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="newpassword" name="newpassword" placeholder="New Password">
+                    <label for="newpassword">New Password</label>
+                </div>
+
+                <div class="form-floating">
+                    <input type="password" class="form-control" id="confirmpassword" name="confirmpassword" placeholder="Confirm Password">
+                    <label for="confirmpassword">Confirm Password</label>
+                </div>
 
                 <div class="d-flex justify-content-between">
                     <strong class="text-primary"></strong>
                     <span>
-                        <?php echo $dlbtn; ?>
+                        <input type="submit" name="updateUserProfileBtn" value="Update" class="btn btn-primary" id="updateUserProfileBtn">
                     </span>
                 </div>
             </form>
@@ -263,19 +325,20 @@ if ($sAPI->checkVP($suggestions_id)) {
     </div>
     <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script type="text/javascript">
-        function checkLen(val) {
-            if (val.length > 0) {
-                document.getElementById('counterDisplay').innerHTML = '(' + val.length + ' / 280)';
-                document.getElementById('suggestionsBtn').disabled = false;
-            } else {
-                document.getElementById('counterDisplay').innerHTML = '';
-                document.getElementById('suggestionsBtn').disabled = true;
-            }
-        }
-        let sdtv2 = <?php echo json_encode($suggestionstitlev2); ?>;
-        document.getElementById('suggestionstitleID').value = sdtv2.suggestionstitle;
-        let sdv2 = <?php echo json_encode($suggestionsdatav2); ?>;
-        document.getElementById('suggestionsID').value = sdv2.suggestionsdetails;
+        let fullname = <?php echo json_encode($fullname) ?>;
+        document.getElementById("fullname").value = fullname;
+
+        let username = <?php echo json_encode($username) ?>;
+        document.getElementById("username").value = username;
+
+        let nric = <?php echo json_encode($nric) ?>;
+        document.getElementById("nric").value = nric;
+
+        let email = <?php echo json_encode($email) ?>;
+        document.getElementById("email").value = email;
+
+        let phone = <?php echo json_encode($phone) ?>;
+        document.getElementById("phone").value = phone;
     </script>
     <script src="js/offcanvas.js"></script>
 </body>

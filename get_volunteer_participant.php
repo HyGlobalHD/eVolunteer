@@ -1,51 +1,54 @@
 <?php
-// look at suggestions details
-// get post by suggestion id
-// hence the page will be like view_suggestions.php?id=EXAMPLE
 
-// use $_GET['parametername'];
-
-include 'src/db.php';
-include 'src/suggestions.php';
-include 'src/users.php';
-
+// start session
 session_start();
+// include db.php
+include 'src/db.php';
+// include suggestions.php
+include 'src/suggestions.php';
+// include users.php
+include 'src/users.php';
+// include achievement.php
+include 'src/achievement.php';
+// include group.php
+include 'src/group.php';
 
+// check if user is logged in
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
   // nric // groupcode
 } else {
   header("location: user_login.php?msgt=2&msg=Please login first.");
   exit;
 }
+
+// api
 $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
+$gAPI = new group();
 
-$currentUserId = $_SESSION['nric'];
 
-// note: to check currentuser if same user as the create user
-
-$suggestionsdata = "";
-//echo $suggestions_id;
-$suggestionssectionMSG = "";
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions'])) {
-  $suggestionsgiven = $_POST['suggestions'];
-  $suggestionstitlegiven = $_POST['suggestionstitle'];
-  if (!(is_null($suggestionsgiven)) && strlen(trim($suggestionsgiven)) > 0 && !(is_null($suggestionstitlegiven)) && strlen(trim($suggestionstitlegiven)) > 0) {
-    $tmpsid = $sAPI->createSuggestions($suggestionstitlegiven, $suggestionsgiven, $currentUserId);
-    if (!(is_null($tmpsid))) {
-      //$suggestionssectionMSG = "<span class='text-success'>Successful create suggestions!!</span>";
-      //$suggestionssectionMSG = "<script type='text/javascript'>alert('Successful create suggestions!!');window.location.href = 'view_suggestions.php?id=$tmpsid';</script>";
-      header("location: view_suggestions.php?id=$tmpsid&msgt=1&msg=Successful create suggestions!!");
-      exit;
+// get volunteer program id
+$vp_id = $_GET['id'];
+$applist = "";
+// list all the participant username, fullname.
+$detail = $sAPI->getParticipantList($vp_id);
+if (!(is_null($detail))) {
+  foreach ($detail as $details) {
+    $participantNRIC = $details['USER_NRIC'];
+    $participantUsername = $uAPI->getUserUsername($participantNRIC);
+    $participantDate = $details['PARTICIPATE_DATE'];
+    $participantNotified = $details['PARTICIPATE_NOTIFIED'];
+    if ($participantNotified == 1) {
+      $participantNotified = "Yes";
     } else {
-      $suggestionssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again.");
+      $participantNotified = "No";
     }
-  } else {
-    $suggestionssectionMSG = $sAPI->msgbox(3, "Opsie! Something wrong happen! Try again. Please make sure the input is there.");
+
+    $applist = $applist . "<div class='d-flex text-muted pt-3'><svg class='bd-placeholder-img flex-shrink-0 me-2 rounded' width='32' height='32' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='Placeholder: 32x32' preserveAspectRatio='xMidYMid slice' focusable='false'><title>Placeholder</title><rect width='100%' height='100%' fill='#007bff' /><text x='50%' y='50%' fill='#007bff' dy='.3em'>32x32</text></svg><div class='pb-3 mb-0 small lh-sm border-bottom w-100'><div class='d-flex'><strong class='text-primary  position-relative'><span class='text-dark'>Participant Username: </span><a href='user_profile.php?username=$participantUsername' style='text-decoration: none;'>@" . $participantUsername . "</a></strong></div><span class='text-dark'>Participant Notified: " . $participantNotified . "</span><div class='d-flex'><span class='text-dark'>Date: " . $participantDate . "</span></div></div></div>";
   }
 }
+
 
 ?>
 
@@ -56,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel='icon' href='favicon.png' type='image/png' />
-  <title>eVolunteer - New Suggestions</title>
+  <title>eVolunteer - Participant List</title>
 
   <link href="bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
@@ -98,7 +101,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
             <a class="nav-link" aria-current="page" href="homepage.php">Homepage</a>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Suggestions</a>
+            <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Suggestions</a>
             <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
               <li><a class="dropdown-item" href="top_suggestions.php">Top Suggestions</a></li>
               <li>
@@ -108,7 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
               <li>
                 <hr class="dropdown-divider">
               </li>
-              <li><a class="dropdown-item text-success active" href="#">Create Suggestions</a></li>
+              <li><a class="dropdown-item text-success" href="create_suggestions.php">Create Suggestions</a></li>
               <li>
                 <hr class="dropdown-divider">
               </li>
@@ -116,7 +119,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
             </ul>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Volunteer Program</a>
+            <a class="nav-link dropdown-toggle active" href="#" id="dropdown01" data-bs-toggle="dropdown" aria-expanded="false">Volunteer Program</a>
             <ul class="dropdown-menu mx-0 shadow" aria-labelledby="dropdown01">
               <li><a class="dropdown-item" href="volunteer_program.php">All Volunteer Program</a></li>
               <li>
@@ -149,41 +152,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
   </nav>
 
 
+
   <main class="container">
     <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
       <div class="lh-1">
         <h1 class="h6 mb-0 text-white lh-1"><span style="color: #7289DA;">e</span>Volunteer</h1>
-        <small>Suggestions</small>
+        <small>Volunteer Program</small>
       </div>
     </div>
 
     <div class="my-3 p-3 bg-body rounded shadow-sm">
       <div class="d-flex justify-content-between border-bottom">
-        <h6 class="pb-2 mb-0">New Suggestions</h6>
+        <h6 class="border-bottom pb-2 mb-0">Participant List</h6>
+        <a href="view_volunteers.php?id=<?php echo $vp_id; ?>"><button class="btn btn-success">Back</button></a>
       </div>
-      <span>
-        <?php echo $suggestionssectionMSG; ?>
-      </span>
-      <br>
-
-      <form class="border-bottom my-3" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST">
-        <div class="form-floating">
-          <input type="text" class="form-control" id="suggestionstitleID" name="suggestionstitle" placeholder="your suggestions title" autocomplete="off" maxlength="50" required>
-          <label for="suggestionstitleID">Your suggestions title...</label>
-        </div>
-        <div class="form-floating">
-          <textarea class="form-control form-outline rounded-0" id="suggestionsID" name="suggestions" placeholder="your suggestions" autocomplete="off" rows="30" cols="80" onclick="checkLen(this.value)" onkeypress="checkLen(this.value)" onkeyup="checkLen(this.value)" tabindex="3" data-type="CHAR" aria-invalid="false" style="height: 100%;" required></textarea>
-          <label for="suggestionsID">Your suggestions...<span id="counterDisplay"></span></label>
-        </div>
-        <input name="tmpsid" type="hidden" value="<?php echo $suggestions_id; ?>">
-        <div class="d-flex justify-content-between">
-          <strong class="text-primary"></strong>
-          <span>
-            <input type="submit" name="createSuggestions" value="create" class="btn btn-primary" id="suggestionsBtn" disabled>
-          </span>
-        </div>
-      </form>
-      <div class="border-bottom my-3"></div>
+      <?php echo $applist; ?>
     </div>
 
     <div class="text-center">
@@ -196,18 +179,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" &&  isset($_POST['createSuggestions']))
       <p class="col-md-4 mb-0 text-muted">&copy; 2021 eVolunteer</p>
     </footer>
   </div>
+
   <script src="bootstrap-5.1.3-dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  <script type="text/javascript">
-    function checkLen(val) {
-      if (val.length > 0) {
-        document.getElementById('counterDisplay').innerHTML = '(' + val.length + ' / 280)';
-        document.getElementById('suggestionsBtn').disabled = false;
-      } else {
-        document.getElementById('counterDisplay').innerHTML = '';
-        document.getElementById('suggestionsBtn').disabled = true;
-      }
-    }
-  </script>
 
   <script src="js/offcanvas.js"></script>
 </body>

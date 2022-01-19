@@ -1,26 +1,3 @@
-<?php
-include 'src/db.php';
-include 'src/users.php';
-include 'src/suggestions.php';
-
-session_start(); // start the session
-
-$sAPI = new suggestions();
-// check user already login or nah // note: does'nt need to be logged in to view this page
-
-$msgt = "";
-if (isset($_GET['msgt']) && isset($_GET['msg'])) {
-    $msgt = $msgt . $sAPI->msgbox($_GET['msgt'], $_GET['msg']);
-    // get the message type based on the numeric value
-}
-if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-    // show prompt already login
-    $msgt = $msgt . $sAPI->msgbox(0, "You are already logged in. Please go to <a href='homepage.php' class='text-primary' style='text-decoration: none;'>Homepage</a>.");
-}
-
-$msg = "";
-
-?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -29,7 +6,7 @@ $msg = "";
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='icon' href='favicon.png' type='image/png' />
-    <title>eVolunteer - Home</title>
+    <title>eVolunteer - About</title>
     <link href="bootstrap-5.1.3-dist/css/bootstrap.min.css" rel="stylesheet">
 
 
@@ -81,8 +58,8 @@ $msg = "";
         <ul></ul>
 
         <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-            <li><a href="#" class="nav-link px-2 text-dark"><strong>Home</strong></a></li> <!-- text-secondary -->
-            <li><a href="about.php" class="nav-link px-2 text-dark">About</a></li>
+            <li><a href="index.php" class="nav-link px-2 text-secondary">Home</a></li> <!-- text-secondary -->
+            <li><a href="#" class="nav-link px-2 text-dark"><strong>About</strong></a></li>
         </ul>
 
         <div class="text-end">
@@ -107,18 +84,20 @@ $msg = "";
 
 <body>
 
-    <main class="form-signup">
+    <main class="">
 
-        <?php echo $msgt; ?>
 
         <div class="text-center">
 
             <h4 style="color: #7289DA;">e<span style="color: #2C2F33;">Volunteer</span></h4>
-            <h5>A place where everyone gather together as a community.</h5>
-            <p>Join us today and be a volunteer!</p>
-            <a href="user_register.php" class="btn btn-primary">Sign-up Now</a>
-            <p></p>
-            <p>Already have an account? <a href="user_login.php" class="primary-text" style="text-decoration: none;">Login Now!</a></p>
+            <h5>About</h5>
+
+            <p>Developed by UiTM Student, Amirul Adli Fahmi bin Azam</p>
+
+            <p>The purpose of eVolunteer is to make the need of user much easier in finding/suggesting a volunteer program.</p>
+
+            <p>eVolunteer offers a lot of features, such as the ability to use markdown(A Markup Language) format for posting.</p>
+
 
             <p class="mt-5 mb-3 text-muted" style="color: #7289DA;">e<span style="color: #2C2F33;">Volunteer &copy; 2021</span></p>
         </div>
