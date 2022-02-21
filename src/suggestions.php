@@ -184,22 +184,6 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         }
     }
 
-    // search suggestions
-    public function searchSuggestions($search)
-    {
-        // search sql from suggestions table and user table
-        $sql = "SELECT suggestions.*, user.USER_USERNAME FROM suggestions LEFT JOIN user ON suggestions.USER_NRIC = user.USER_NRIC WHERE suggestions.SUGGESTIONS_TITLE LIKE '%$search%' OR user.USER_USERNAME LIKE '%$search%'";
-        $result = $this->connect()->query($sql);
-        if ($result) {
-            $numRows = $result->num_rows;
-            if ($numRows > 0) {
-                while ($row = $result->fetch_assoc()) {
-                    $data[] = $row;
-                }
-                return $data;
-            }
-        }
-    }
 
     // update suggestions
     public function updateSuggestions($suggestions_id, $suggestions_title, $suggestions_details)
@@ -574,6 +558,22 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
         }
     }
 
+    // search suggestions
+    public function searchSuggestions($search)
+    {
+        // search sql from suggestions table and user table
+        $sql = "SELECT suggestions.*, user.USER_USERNAME FROM suggestions LEFT JOIN user ON suggestions.USER_NRIC = user.USER_NRIC WHERE suggestions.SUGGESTIONS_TITLE LIKE '%$search%' OR user.USER_USERNAME LIKE '%$search%'";
+        $result = $this->connect()->query($sql);
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+    }
     // search volunteer program with user table
 
     public function searchVolunteerProgram($search)
@@ -1112,6 +1112,48 @@ where suggestions.SUGGESTIONS_ID not in (select volunteer_program.SUGGESTIONS_ID
                         }
                     }
                 }
+            }
+        }
+        $stmt->close();
+        $conn->close();
+    }
+
+    // get suggestion created user by it suggestions id
+    public function getSuggestionCreatedUser($suggestion_id) {
+        $sql = "SELECT USER_NRIC FROM suggestions WHERE SUGGESTIONS_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $suggestion_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
+            }
+        }
+        $stmt->close();
+        $conn->close();
+    }
+
+    // get volunteer created user by it volunteer id
+    public function getVolunteerCreatedUser($volunteer_id) {
+        $sql = "SELECT USER_NRIC FROM volunteer_program WHERE VP_ID = ?";
+        $conn = $this->connect();
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $volunteer_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result) {
+            $numRows = $result->num_rows;
+            if ($numRows > 0) {
+                while ($row =  $result->fetch_array(MYSQLI_ASSOC)) {
+                    $data[] = $row;
+                }
+                return $data;
             }
         }
         $stmt->close();
