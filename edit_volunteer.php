@@ -29,8 +29,12 @@ if (isset($_GET['msgt']) && isset($_GET['msg'])) {
   // get the message type based on the numeric value
 }
 
-$vp_id = $_GET['id'];
+$vp_id = "";
+if(isset($_GET['id']) && !empty($_GET['id'])) {
+  $vp_id = $_GET['id'];
+}
 $currentUserId = $_SESSION['nric'];
+$currentUserGroup = $_SESSION['groupcode'];
 
 if (!$sAPI->checkVPExist($vp_id)) {
   header("location: homepage.php?msgt=0&msg=There is no volunteer post with the selected data.");
@@ -38,6 +42,17 @@ if (!$sAPI->checkVPExist($vp_id)) {
 }
 
 // note: to check currentuser if same user as the create user
+$checkC = $sAPI->getVolunteerCreatedUser($vp_id);
+if(!(is_null($checkC))) {
+    foreach($checkC as $row) {
+        $checkCuser = $row['USER_NRIC'];
+    }
+}
+if($checkCuser !== $currentUserId && $currentUserGroup !== "ADM") {
+    header("location: homepage.php?msgt=2&msg=You are not allowed to view this page.");
+    exit;
+}
+
 
 $volunteersdata = "";
 //echo $volunteers_id;

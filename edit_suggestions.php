@@ -21,10 +21,25 @@ $dbAPI = new db();
 $sAPI = new suggestions();
 $uAPI = new users();
 
-$suggestions_id = $_GET['id'];
+$suggestions_id = "";
+if(isset($_GET['id']) && !empty($_GET['id'])) {
+    $suggestions_id = $_GET['id'];
+}
+
 $currentUserId = $_SESSION['nric'];
+$currentUserGroup = $_SESSION['groupcode'];
 
 // note: to check currentuser if same user as the create user
+$checkC = $sAPI->getSuggestionCreatedUser($suggestions_id);
+if(!(is_null($checkC))) {
+    foreach($checkC as $row) {
+        $checkCuser = $row['USER_NRIC'];
+    }
+}
+if($checkCuser !== $currentUserId && $currentUserGroup !== "ADM") {
+    header("location: homepage.php?msgt=2&msg=You are not allowed to view this page.");
+    exit;
+}
 
 $suggestionsdata = "";
 //echo $suggestions_id;

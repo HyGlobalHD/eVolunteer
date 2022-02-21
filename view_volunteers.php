@@ -365,6 +365,12 @@ $Participatebtn = "<input type='submit' class='btn btn-success' value='Participa
     </svg>
 
 
+    <style>
+    .container img {
+        width: 40%;
+        height: 40%;
+    }
+    </style>
     <main class="container">
         <div class="d-flex align-items-center p-3 my-3 text-white bg-dark rounded shadow-sm">
             <div class="lh-1">
